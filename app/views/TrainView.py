@@ -185,7 +185,7 @@ def manage(request):
             train = train[0]
 
             train_dir = os.path.join(g_config.storageDir, "train", train.code)
-            train_best_model_filepath = os.path.join(train_dir, "train/weights/best.pt")
+            train_best_model_filepath = os.path.join(train_dir, "train", "weights", "best.pt")
             if not os.path.exists(train_best_model_filepath):
                 train_best_model_filepath = ""
 

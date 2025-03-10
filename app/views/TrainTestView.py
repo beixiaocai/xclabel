@@ -64,7 +64,7 @@ def api_postAdd(request):
             if not os.path.exists(train_dir):
                 os.makedirs(train_dir)
 
-            train_best_model_filepath = os.path.join(train_dir, "train/weights/best.pt")
+            train_best_model_filepath = os.path.join(train_dir, "train", "weights", "best.pt")
             if not os.path.exists(train_best_model_filepath):
                 raise Exception("该训练任务暂无模型！")
 
