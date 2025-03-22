@@ -6,22 +6,23 @@ from datetime import datetime
 import subprocess
 import sys
 import cv2
+from flask import Flask, render_template, request, jsonify, redirect
 from app.utils.OSSystem import OSSystem
 from app.utils.TrainUtils import TrainUtils
-from app.views.ViewsBase import *
 from app.models import *
-from django.shortcuts import render, redirect
 import random
 from app.utils.Utils import buildPageLabels, gen_random_code_s
 from app.utils.UploadUtils import UploadUtils
 import threading
-def index(request):
-    context = {
 
-    }
+app = Flask(__name__)
+
+@app.route('/train')
+def index():
+    context = {}
     data = []
 
-    params = parse_get_params(request)
+    params = request.args
 
     page = params.get('p', 1)
     page_size = params.get('ps', 10)
@@ -53,7 +54,7 @@ def index(request):
                 if not mTrainUtils.checkProcessByPid(pid=d["train_pid"]):
                     d["train_state"] = 2
                     d["train_stop_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    train = TaskTrain.objects.filter(id=d["id"]).first()
+                    train = TaskTrain.query.filter_by(id=d["id"]).first()
                     train.train_state = 2
                     train.train_stop_time = datetime.now()
                     train.save()
@@ -76,14 +77,15 @@ def index(request):
     context["data"] = data
     context["pageData"] = pageData
 
-    return render(request, 'app/train/index.html', context)
-def add(request):
+    return render_template('app/train/index.html', **context)
 
+@app.route('/train/add', methods=['GET', 'POST'])
+def add():
     if request.method == 'POST':
         ret = False
         msg = "未知错误"
 
-        params = parse_post_params(request)
+        params = request.form
         task_code = params.get("task_code", "").strip()
         train_code = params.get("train_code", "").strip()
         algorithm_code = params.get("algorithm_code", "").strip()
@@ -96,14 +98,12 @@ def add(request):
         extra = params.get("extra", "").strip()
 
         try:
-            train = TaskTrain.objects.filter(code=train_code)
-            if len(train) > 0:
+            train = TaskTrain.query.filter_by(code=train_code).first()
+            if train:
                 raise Exception("该训练编号已存在！")
 
-            task = Task.objects.filter(code=task_code)
-            if len(task) > 0:
-                task = task[0]
-            else:
+            task = Task.query.filter_by(code=task_code).first()
+            if not task:
                 raise Exception("任务不存在！")
 
             user = readUser(request)
@@ -140,14 +140,11 @@ def add(request):
             "code": 1000 if ret else 0,
             "msg": msg
         }
-        return HttpResponseJson(res)
+        return jsonify(res)
     else:
+        context = {}
 
-        context = {
-
-        }
-
-        params = parse_get_params(request)
+        params = request.args
         task_code = params.get('task_code',"").strip()
         train_code = "train"+datetime.now().strftime("%Y%m%d%H%M%S") # 随机生成一个训练编号
         tasks = g_database.select("select * from xc_task")
@@ -168,27 +165,22 @@ def add(request):
         context["tasks"] = tasks
         context["algorithms"] = algorithms
 
+        return render_template('app/train/add.html', **context)
 
-        return render(request, 'app/train/add.html', context)
+@app.route('/train/manage')
+def manage():
+    context = {}
 
-def manage(request):
-    context = {
-
-    }
-
-    params = parse_get_params(request)
+    params = request.args
 
     train_code = params.get("code")
     if train_code:
-        train = TaskTrain.objects.filter(code=train_code)
-        if len(train) > 0:
-            train = train[0]
-
+        train = TaskTrain.query.filter_by(code=train_code).first()
+        if train:
             train_dir = os.path.join(g_config.storageDir, "train", train.code)
             train_best_model_filepath = os.path.join(train_dir, "train/weights/best.pt")
             if not os.path.exists(train_best_model_filepath):
                 train_best_model_filepath = ""
-
 
             context["handle"] = "manage"
             context["storageDir_www"] = g_config.storageDir_www
@@ -196,21 +188,19 @@ def manage(request):
             context["train_best_model_filepath"] = train_best_model_filepath
             context["train"] = train
 
-
-            return render(request, 'app/train/manage.html', context)
+            return render_template('app/train/manage.html', **context)
 
     return redirect("/train/index")
 
-
-def api_postDel(request):
+@app.route('/api/train/postDel', methods=['POST'])
+def api_postDel():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         train_code = params.get("code", "").strip()
-        train = TaskTrain.objects.filter(code=train_code)
-        if len(train) > 0:
-            train = train[0]
+        train = TaskTrain.query.filter_by(code=train_code).first()
+        if train:
             if train.train_state == 1:
                 msg = "训练中的任务不允许删除"
             else:
@@ -238,26 +228,23 @@ def api_postDel(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
-def api_postTaskCreateDatasets(request):
+    return jsonify(res)
+
+@app.route('/api/train/postTaskCreateDatasets', methods=['POST'])
+def api_postTaskCreateDatasets():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
 
         train_code = params.get("train_code", "").strip()
-        # try:
-        train = TaskTrain.objects.filter(code=train_code)
+        train = TaskTrain.query.filter_by(code=train_code).first()
 
-        if len(train) > 0:
-            train = train[0]
-        else:
+        if not train:
             raise Exception("该训练任务不存在!")
 
-        task = Task.objects.filter(code=train.task_code)
-        if len(task) > 0:
-            task = task[0]
-        else:
+        task = Task.query.filter_by(code=train.task_code).first()
+        if not task:
             raise Exception("标注任务不存在!")
 
         names = []
@@ -271,6 +258,7 @@ def api_postTaskCreateDatasets(request):
 
         if len(names) == 0:
             raise Exception("标注任务的标签不能为空！")
+
         def getLabelIndex(labelName):
             i = 0
             for name in names:
@@ -383,8 +371,6 @@ def api_postTaskCreateDatasets(request):
 
         ret = True
         msg = "生成训练集成功"
-        # except Exception as e:
-        #     msg = str(e)
     else:
         msg = "request method not supported"
 
@@ -392,20 +378,19 @@ def api_postTaskCreateDatasets(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
-def api_postTaskStartTrain(request):
+    return jsonify(res)
+
+@app.route('/api/train/postTaskStartTrain', methods=['POST'])
+def api_postTaskStartTrain():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
 
         train_code = params.get("train_code", "").strip()
         try:
-
-            train = TaskTrain.objects.filter(code=train_code)
-            if len(train) > 0:
-                train = train[0]
-            else:
+            train = TaskTrain.query.filter_by(code=train_code).first()
+            if not train:
                 raise Exception("该训练不存在！")
 
             if train.train_state == 1:
@@ -439,7 +424,6 @@ def api_postTaskStartTrain(request):
                 yolo8_name = getattr(g_config, train.algorithm_code)["name"]
                 yolo8_model = os.path.join(yolo8_install_dir, getattr(g_config, train.algorithm_code)["model"])
 
-
                 osSystem = OSSystem()
                 if osSystem.getSystemName() == "Windows":
                     # Windows系统，需要执行下切换盘符的步骤
@@ -471,11 +455,7 @@ def api_postTaskStartTrain(request):
                 def __run(command):
                     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                             text=True, encoding='utf-8')
-                    # print(type(proc),proc)
-                    # print("proc.pid=",proc.pid)
                     stdout, stderr = proc.communicate()
-                    # print(type(stdout), stdout)
-                    # print(type(stderr), stderr)
 
                 t = threading.Thread(target=__run, args=(__train_command,))
                 t.daemon = True
@@ -491,8 +471,6 @@ def api_postTaskStartTrain(request):
                         break
             else:
                 raise Exception("不支持的训练算法")
-
-
 
             if __start_process_info and __start_process_info["state"]:
                 g_logger.info("训练启动成功: %s" % str(__start_process_info))
@@ -521,18 +499,18 @@ def api_postTaskStartTrain(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-def api_postTaskStopTrain(request):
+@app.route('/api/train/postTaskStopTrain', methods=['POST'])
+def api_postTaskStopTrain():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
 
         train_code = params.get("train_code", "").strip()
-        train = TaskTrain.objects.filter(code=train_code)
-        if len(train) > 0:
-            train = train[0]
+        train = TaskTrain.query.filter_by(code=train_code).first()
+        if train:
             if train.train_state == 1:
                 mTrainUtils = TrainUtils(g_logger)
                 mTrainUtils.stopProcessByPid(train.train_pid)
@@ -553,22 +531,22 @@ def api_postTaskStopTrain(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-def api_getTrainLog(request):
+@app.route('/api/train/getTrainLog')
+def api_getTrainLog():
     ret = False
     msg = "未知错误"
     log_lines = []
 
     if request.method == 'GET':
-        params = parse_get_params(request)
+        params = request.args
         task_code = params.get("task_code", "").strip()
         train_code = params.get("train_code", "").strip()
         train_log_index = int(params.get("train_log_index", 0))
 
-        task = Task.objects.filter(code=task_code)
-        if len(task) > 0:
-            task = task[0]
+        task = Task.query.filter_by(code=task_code).first()
+        if task:
             train_dir = os.path.join(g_config.storageDir, "train" , train_code)
             train_log_filepath = os.path.join(train_dir, "train.log")
             if os.path.exists(train_log_filepath):
@@ -591,23 +569,20 @@ def api_getTrainLog(request):
         "msg": msg,
         "log_lines": log_lines
     }
-    return HttpResponseJson(res)
-
+    return jsonify(res)
 
 def __checkTrainThread():
     i = 0
     mTrainUtils = TrainUtils(g_logger)
     while True:
         i += 1
-        trains = TaskTrain.objects.filter(train_state=1)
-        if len(trains) > 0:
+        trains = TaskTrain.query.filter_by(train_state=1).all()
+        if trains:
             for train in trains:
                 if not mTrainUtils.checkProcessByPid(pid=train.train_pid):
                     train.train_state = 2
                     train.train_stop_time = datetime.now()
                     train.save()
-        # labelu
-
         time.sleep(30)
 
 t = threading.Thread(target=__checkTrainThread,)

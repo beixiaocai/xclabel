@@ -2,33 +2,34 @@ import os
 import time
 from datetime import datetime
 import random
-from app.views.ViewsBase import *
+from flask import Flask, render_template, request, jsonify, redirect
 from app.models import *
-from django.shortcuts import render, redirect
 from app.utils.Utils import buildPageLabels, gen_random_code_s
 from app.utils.UploadUtils import UploadUtils
 import cv2
 
-def index(request):
-    context = {
+app = Flask(__name__)
 
-    }
-    params = parse_get_params(request)
+@app.route('/sample')
+def index():
+    context = {}
+    params = request.args
 
-    task_code = params.get('task_code',"").strip()
-    sample_code = params.get('sample_code',"").strip()
+    task_code = params.get('task_code', "").strip()
+    sample_code = params.get('sample_code', "").strip()
 
     context["task_code"] = task_code
     context["sample_code"] = sample_code
     context["storageDir_www"] = g_config.storageDir_www
 
-    return render(request, 'app/sample/index.html', context)
+    return render_template('app/sample/index.html', **context)
 
-def api_getIndex(request):
+@app.route('/api/sample/getIndex')
+def api_getIndex():
     ret = False
     msg = "未知错误"
 
-    params = parse_get_params(request)
+    params = request.args
     page = params.get('p', 1)
     page_size = params.get('ps', 10)
     task_code = params.get('task_code', "").strip()
@@ -44,9 +45,8 @@ def api_getIndex(request):
     except:
         page_size = 10
 
-
     skip = (page - 1) * page_size
-    sql_data = "select * from xc_task_sample where task_code='%s' order by id desc limit %d,%d " % (task_code,skip, page_size)
+    sql_data = "select * from xc_task_sample where task_code='%s' order by id desc limit %d,%d " % (task_code, skip, page_size)
     count = g_database.select("select count(id) as count from xc_task_sample where task_code='%s'" % task_code)
     count = int(count[0]["count"])
     if count > 0:
@@ -75,19 +75,19 @@ def api_getIndex(request):
         "data": data,
         "pageData": pageData
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-
-def api_postAdd(request):
+@app.route('/api/sample/postAdd', methods=['POST'])
+def api_postAdd():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         task_code = params.get("task_code", "").strip()
         task_type = int(params.get("task_type", 0))
-        upload_type = int(params.get("upload_type", 0)) # 1:图片文件 2:图片文件夹 3:视频文件 4:labelme文件夹
+        upload_type = int(params.get("upload_type", 0))  # 1:图片文件 2:图片文件夹 3:视频文件 4:labelme文件夹
 
-        task = Task.objects.filter(code=task_code).first()
+        task = Task.query.filter_by(code=task_code).first()
         task_state = 1 if task else 0
         user = readUser(request)
 
@@ -97,9 +97,9 @@ def api_postAdd(request):
         labelme_json_dict = {}
 
         upload_utils = UploadUtils()
-        filenames = request.FILES.keys()
+        filenames = request.files.keys()
         for filename in filenames:
-            file = request.FILES.get(filename)
+            file = request.files.get(filename)
             if upload_type == 1 or upload_type == 2:
                 __ret, __msg, __info = upload_utils.upload_sample_image(storageDir=g_config.storageDir, task_code=task_code, file=file)
 
@@ -132,19 +132,17 @@ def api_postAdd(request):
             elif upload_type == 3:
                 __ret, __msg, __info = upload_utils.upload_sample_video(storageDir=g_config.storageDir,
                                                                         task_code=task_code, file=file)
-                #print(__ret,__msg,__info)
                 if __ret:
                     old_filename = __info.get("old_filename")
                     new_filenames = __info.get("new_filenames")
 
-
                     sample_code = "sample" + datetime.now().strftime("%Y%m%d%H%M%S") + str(
-                            random.randint(1000, 9999))  # 随机生成一个训练编号
+                        random.randint(1000, 9999))  # 随机生成一个训练编号
                     i = 0
                     for new_filename in new_filenames:
                         sample = TaskSample()
                         sample.sort = 0
-                        sample.code = sample_code +"-"+str(i)
+                        sample.code = sample_code + "-" + str(i)
                         sample.user_id = user.get("id")
                         sample.username = user.get("username")
                         sample.task_type = task_type
@@ -164,7 +162,7 @@ def api_postAdd(request):
                     error_count += 1
             elif upload_type == 4:
                 __ret, __msg, __info = upload_utils.upload_sample_labelme(storageDir=g_config.storageDir,
-                                                                        task_code=task_code, file=file)
+                                                                          task_code=task_code, file=file)
                 if __ret:
                     old_filename_prefix = __info["old_filename_prefix"]
                     old_filename_suffix = __info["old_filename_suffix"]
@@ -174,7 +172,6 @@ def api_postAdd(request):
                         labelme_json_dict[old_filename_prefix] = __info
 
         if upload_type == 4:
-
             sample_code = "sample" + datetime.now().strftime("%Y%m%d%H%M%S") + str(
                 random.randint(1000, 9999))  # 随机生成一个训练编号
             labelName_dict = {}
@@ -194,9 +191,8 @@ def api_postAdd(request):
                     imageHeight = annotation.get("imageHeight")
 
                     for shape in shapes:
-                        label = shape.get("label") # drive
-                        labelName_dict[label] = labelName_dict.get(label,0) + 1
-
+                        label = shape.get("label")  # drive
+                        labelName_dict[label] = labelName_dict.get(label, 0) + 1
 
                         shape_type = shape.get("shape_type")
                         points = shape.get("points")
@@ -211,10 +207,10 @@ def api_postAdd(request):
 
                         annotation_content.append({
                             "content": [
-                                {"x":x1,"y":y1},
-                                {"x":x1,"y":y1},
-                                {"x":x2,"y":y2},
-                                {"x":x1,"y":y2}
+                                {"x": x1, "y": y1},
+                                {"x": x1, "y": y1},
+                                {"x": x2, "y": y2},
+                                {"x": x1, "y": y2}
                             ],
                             "rectMask": {
                                 "xMin": x1,
@@ -249,7 +245,7 @@ def api_postAdd(request):
                     sample.state = task_state
                     sample.annotation_user_id = user.get("id")
                     sample.annotation_state = 1
-                    sample.annotation_content= json.dumps(annotation_content)
+                    sample.annotation_content = json.dumps(annotation_content)
                     sample.save()
 
                     i += 1
@@ -263,7 +259,8 @@ def api_postAdd(request):
                     for task_label in task_labels:
                         task_labels_dict[task_label["labelName"]] = 1
 
-                except:pass
+                except:
+                    pass
 
                 for labelName in labelName_dict.keys():
                     if not task_labels_dict.get(labelName):
@@ -277,11 +274,9 @@ def api_postAdd(request):
                 task.labels = json.dumps(task_labels)
                 task.save()
 
-
         msg = "成功：%d，失败：%d" % (success_count, error_count)
         if success_count > 0:
             ret = True
-
 
     else:
         msg = "request method not supported"
@@ -290,25 +285,22 @@ def api_postAdd(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-
-
-def api_postDel(request):
+@app.route('/api/sample/postDel', methods=['POST'])
+def api_postDel():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         code = params.get("code", "").strip()
-        sample = TaskSample.objects.filter(code=code)
-        if len(sample) > 0:
-            sample = sample[0]
-
+        sample = TaskSample.query.filter_by(code=code).first()
+        if sample:
             new_filename_abs = os.path.join(
-                g_config.storageDir, 
-                'task', 
-                sample.task_code, 
-                'sample', 
+                g_config.storageDir,
+                'task',
+                sample.task_code,
+                'sample',
                 sample.new_filename
             )
             if os.path.exists(new_filename_abs):
@@ -327,17 +319,16 @@ def api_postDel(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-
-
-def api_getInfo(request):
+@app.route('/api/sample/getInfo')
+def api_getInfo():
     ret = False
     msg = "未知错误"
 
-    params = parse_get_params(request)
-    task_code = params.get('task_code',"").strip()
-    sample_code = params.get('sample_code',"").strip()
+    params = request.args
+    task_code = params.get('task_code', "").strip()
+    sample_code = params.get('sample_code', "").strip()
 
     sample = {}
     sample_data = g_database.select("select code from xc_task_sample where task_code='%s' and state=1" % task_code)
@@ -354,7 +345,7 @@ def api_getInfo(request):
         if sample_index == 0:
             sample_code = sample_data[0]["code"]
 
-        sample = g_database.select("select xc_task_sample.*,xc_task.labels from xc_task_sample left join xc_task on xc_task_sample.task_code=xc_task.code where xc_task_sample.code='%s' limit 1" % sample_code)
+        sample = g_database.select("select xc_task_sample.*, xc_task.labels from xc_task_sample left join xc_task on xc_task_sample.task_code=xc_task.code where xc_task_sample.code='%s' limit 1" % sample_code)
         if len(sample) > 0:
             sample = sample[0]
 
@@ -370,14 +361,14 @@ def api_getInfo(request):
         "sample": sample,
         "sample_data": sample_data
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-
-def api_postSaveAnnotation(request):
+@app.route('/api/sample/postSaveAnnotation', methods=['POST'])
+def api_postSaveAnnotation():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         sample_code = params.get("sample_code", "").strip()
         annotation_content = params.get("annotation_content", "").strip()
         labels = params.get("labels", "").strip()
@@ -386,7 +377,7 @@ def api_postSaveAnnotation(request):
         user_id = user.get("id")
         username = user.get("username")
 
-        sample = TaskSample.objects.filter(code=sample_code).first()
+        sample = TaskSample.query.filter_by(code=sample_code).first()
         if sample:
             sample.annotation_user_id = user_id
             sample.annotation_username = username
@@ -395,7 +386,7 @@ def api_postSaveAnnotation(request):
             sample.annotation_state = 1
             sample.save()
 
-            task = Task.objects.filter(code=sample.task_code).first()
+            task = Task.query.filter_by(code=sample.task_code).first()
             if task:
                 task.labels = labels
                 task.save()
@@ -411,15 +402,17 @@ def api_postSaveAnnotation(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
-def api_postDelAnnotation(request):
+    return jsonify(res)
+
+@app.route('/api/sample/postDelAnnotation', methods=['POST'])
+def api_postDelAnnotation():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         sample_code = params.get("sample_code", "").strip()
 
-        sample = TaskSample.objects.filter(code=sample_code).first()
+        sample = TaskSample.query.filter_by(code=sample_code).first()
         if sample:
             sample.annotation_state = 0
             sample.annotation_content = None
@@ -436,4 +429,4 @@ def api_postDelAnnotation(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)

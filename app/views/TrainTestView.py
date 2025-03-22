@@ -6,6 +6,7 @@ from datetime import datetime
 import subprocess
 import sys
 import cv2
+from flask import Flask, request, jsonify
 from app.utils.OSSystem import OSSystem
 from app.utils.TrainUtils import TrainUtils
 from app.views.ViewsBase import *
@@ -13,17 +14,17 @@ from app.models import *
 import random
 from app.utils.UploadUtils import UploadUtils
 
-def api_postDel(request):
+app = Flask(__name__)
+
+@app.route('/api/trainTest/postDel', methods=['POST'])
+def api_postDel():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         test_code = params.get("code", "").strip()
-        test = TaskTrainTest.objects.filter(code=test_code)
-        if len(test) > 0:
-            test = test[0]
-            # 训练根目录
-            train_dir = os.path.join(g_config.storageDir, "train", test.train_code)
+        test = TaskTrainTest.query.filter_by(code=test_code).first()
+        if test:
             test_save_dir = os.path.join(g_config.storageDir, "test", test_code)
             try:
                 if os.path.exists(test_save_dir):
@@ -43,37 +44,32 @@ def api_postDel(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
-def api_postAdd(request):
+    return jsonify(res)
+
+@app.route('/api/trainTest/postAdd', methods=['POST'])
+def api_postAdd():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         train_code = params.get("train_code", "").strip()
         file_type = int(params.get("file_type", 0))
 
         try:
-            train = TaskTrain.objects.filter(code=train_code)
-            if len(train) > 0:
-                train = train[0]
-            else:
+            train = TaskTrain.query.filter_by(code=train_code).first()
+            if not train:
                 raise Exception("该训练任务不存在！")
 
-            # 训练根目录
-            train_dir = os.path.join(g_config.storageDir, "train", train.code)
-            if not os.path.exists(train_dir):
-                os.makedirs(train_dir)
-
-            train_best_model_filepath = os.path.join(train_dir, "train/weights/best.pt")
+            train_best_model_filepath = os.path.join(g_config.storageDir, "train", train.code, "train/weights/best.pt")
             if not os.path.exists(train_best_model_filepath):
                 raise Exception("该训练任务暂无模型！")
 
-            file = request.FILES.get("file0")
+            file = request.files.get("file0")
             if not file:
                 raise Exception("请选择上传文件！")
 
             test_code = "test" + datetime.now().strftime("%Y%m%d%H%M%S") + str(random.randint(1000, 9999))  # 随机生成一个测试编号
-            test_save_dir = os.path.join(train_dir, "test", test_code)
+            test_save_dir = os.path.join(g_config.storageDir, "train", train.code, "test", test_code)
             if not os.path.exists(test_save_dir):
                 os.makedirs(test_save_dir)
 
@@ -95,16 +91,13 @@ def api_postAdd(request):
 
             test_predict_log_filepath = os.path.join(test_save_dir, "predict.log")  # 训练日志
 
-            __calcu_state = False
             calcu_start_time = time.time()
-
 
             if train.algorithm_code == "yolo8" or train.algorithm_code == "yolo11":
 
                 yolo8_install_dir = getattr(g_config, train.algorithm_code)["install_dir"]
                 yolo8_venv = getattr(g_config, train.algorithm_code)["venv"]
                 yolo8_name = getattr(g_config, train.algorithm_code)["name"]
-                yolo8_model = os.path.join(yolo8_install_dir, getattr(g_config, train.algorithm_code)["model"])
 
                 osSystem = OSSystem()
                 if osSystem.getSystemName() == "Windows":
@@ -131,13 +124,10 @@ def api_postAdd(request):
 
                 proc = subprocess.Popen(__predict_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         text=True, encoding='utf-8')
-                # print(type(proc),proc)
-                # print("proc.pid=",proc.pid)
                 stdout, stderr = proc.communicate()
 
             else:
                 raise Exception("不支持的训练算法")
-
 
             calcu_end_time = time.time()
             calcu_seconds = calcu_end_time - calcu_start_time
@@ -170,15 +160,16 @@ def api_postAdd(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-def api_getIndex(request):
+@app.route('/api/trainTest/getIndex')
+def api_getIndex():
     ret = False
     msg = "未知错误"
     data = []
 
     if request.method == 'GET':
-        params = parse_get_params(request)
+        params = request.args
         train_code = params.get("train_code", "").strip()
         sql = "select * from xc_task_train_test where train_code='%s' order by id desc" % train_code
         data = g_database.select(sql)
@@ -195,4 +186,4 @@ def api_getIndex(request):
         "msg": msg,
         "data": data
     }
-    return HttpResponseJson(res)
+    return jsonify(res)

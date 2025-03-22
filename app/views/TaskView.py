@@ -1,22 +1,20 @@
+from flask import Flask, render_template, request, jsonify
+from app.models import *
+from app.utils.Utils import buildPageLabels, gen_random_code_s
+from app.utils.UploadUtils import UploadUtils
 import os
 import shutil
 import time
 from datetime import datetime
-from PIL import Image
-from app.views.ViewsBase import *
-from app.models import *
-from django.shortcuts import render, redirect
-from app.utils.Utils import buildPageLabels, gen_random_code_s
-from app.utils.UploadUtils import UploadUtils
 
+app = Flask(__name__)
 
-def index(request):
-    context = {
-
-    }
+@app.route('/task')
+def index():
+    context = {}
     data = []
 
-    params = parse_get_params(request)
+    params = request.args
 
     page = params.get('p', 1)
     page_size = params.get('ps', 10)
@@ -61,15 +59,15 @@ def index(request):
     context["pageData"] = pageData
     context["storageDir_www"] = g_config.storageDir_www
 
-    return render(request, 'app/task/index.html', context)
+    return render_template('app/task/index.html', **context)
 
-
-def add(request):
-    if "POST" == request.method:
+@app.route('/task/add', methods=['GET', 'POST'])
+def add():
+    if request.method == 'POST':
         __ret = False
         __msg = "未知错误"
 
-        params = parse_post_params(request)
+        params = request.form
         handle = params.get("handle")
         code = params.get("code", "").strip()
         task_type = int(params.get("task_type",0))
@@ -81,7 +79,7 @@ def add(request):
                 if name == "":
                     raise Exception("任务名称不能为空")
 
-                if len(Task.objects.filter(code=code)) > 0:
+                if len(Task.query.filter_by(code=code).all()) > 0:
                     raise Exception("任务编号已经存在")
 
                 g_database.execute("update xc_task_sample set state=1 where task_code='%s'" % code)
@@ -109,8 +107,6 @@ def add(request):
                 task.state = 0
                 task.save()
 
-
-
                 __msg = "添加成功"
                 __ret = True
 
@@ -123,13 +119,10 @@ def add(request):
             "code": 1000 if __ret else 0,
             "msg": __msg
         }
-        return HttpResponseJson(res)
-
+        return jsonify(res)
 
     else:
-        context = {
-
-        }
+        context = {}
         task_code = "task" + datetime.now().strftime("%Y%m%d%H%M%S")  # 随机生成一个训练编号
         context["handle"] = "add"
         context["storageDir_www"] = g_config.storageDir_www
@@ -138,15 +131,15 @@ def add(request):
             "task_type": 1
         }
 
-        return render(request, 'app/task/add.html', context)
+        return render_template('app/task/add.html', **context)
 
-
-def edit(request):
-    if "POST" == request.method:
+@app.route('/task/edit', methods=['GET', 'POST'])
+def edit():
+    if request.method == 'POST':
         __ret = False
         __msg = "未知错误"
 
-        params = parse_post_params(request)
+        params = request.form
         handle = params.get("handle")
         code = params.get("code", "").strip()
         name = params.get("name", "").strip()
@@ -154,10 +147,8 @@ def edit(request):
 
         if "edit" == handle and code:
             try:
-                task = Task.objects.filter(code=code)
-                if len(task) > 0:
-                    task = task[0]
-                else:
+                task = Task.query.filter_by(code=code).first()
+                if not task:
                     raise Exception("该任务不存在")
 
                 sample_count, sample_annotation_count = f_readSampleCountAndAnnotationCount(task_code=code)
@@ -168,7 +159,6 @@ def edit(request):
                 task.sample_count = sample_count
 
                 task.save()
-
 
                 __msg = "编辑成功"
                 __ret = True
@@ -182,36 +172,32 @@ def edit(request):
             "code": 1000 if __ret else 0,
             "msg": __msg
         }
-        return HttpResponseJson(res)
+        return jsonify(res)
 
     else:
-        context = {
-
-        }
-        params = parse_get_params(request)
+        context = {}
+        params = request.args
         code = params.get("code")
         if code:
-            task = Task.objects.filter(code=code)
-            if len(task) > 0:
-                task = task[0]
+            task = Task.query.filter_by(code=code).first()
+            if task:
                 context["handle"] = "edit"
                 context["storageDir_www"] = g_config.storageDir_www
                 context["task"] = task
             else:
-                return render(request, 'app/message.html',
+                return render_template('app/message.html',
                               {"msg": "请通过任务管理进入", "is_success": False, "redirect_url": "/task/index"})
 
-            return render(request, 'app/task/add.html', context)
+            return render_template('app/task/add.html', **context)
         else:
             return redirect("/task/index")
 
-def api_sync(request):
+@app.route('/task/api/sync')
+def api_sync():
     ret = False
     msg = "未知错误"
     if request.method == 'GET':
-        params = parse_get_params(request)
-
-        tasks = Task.objects.all()
+        tasks = Task.query.all()
         for task in tasks:
             sample_count, sample_annotation_count = f_readSampleCountAndAnnotationCount(task_code=task.code)
             task.sample_count = sample_count
@@ -227,18 +213,17 @@ def api_sync(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
-def api_postDel(request):
+@app.route('/task/api/postDel', methods=['POST'])
+def api_postDel():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         task_code = params.get("code", "").strip()
-        task = Task.objects.filter(code=task_code)
-        if len(task) > 0:
-            task = task[0]
-
+        task = Task.query.filter_by(code=task_code).first()
+        if task:
             del_sql = "delete from xc_task_sample where task_code='%s'" % task_code
             if not g_database.execute(del_sql):
                 g_logger.error("del_sql=%s" % del_sql)
@@ -263,4 +248,4 @@ def api_postDel(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)

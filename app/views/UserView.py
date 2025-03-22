@@ -1,15 +1,16 @@
+from flask import Flask, render_template, request, jsonify, redirect, session
 from app.views.ViewsBase import *
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
+from app.models import User
+from datetime import datetime
 
+app = Flask(__name__)
 
-def index(request):
-    context = {
-
-    }
+@app.route('/user')
+def index():
+    context = {}
     data = []
 
-    params = parse_get_params(request)
+    params = request.args
 
     page = params.get('p', 1)
     page_size = params.get('ps', 10)
@@ -54,27 +55,26 @@ def index(request):
     context["data"] = data
     context["pageData"] = pageData
 
-    return render(request, 'app/user/index.html', context)
+    return render_template('app/user/index.html', **context)
 
 
-def add(request):
+@app.route('/user/add', methods=['GET', 'POST'])
+def add():
     login_user_is_superuser = False
     login_user = readUser(request)
     if login_user:
         login_user_is_superuser = login_user.get("is_superuser")
     if not login_user_is_superuser:
-        return render(request, 'app/message.html',
+        return render_template('app/message.html',
                       {"msg": "无权限", "is_success": False, "redirect_url": "/user/index"})
     else:
-        context = {
+        context = {}
 
-        }
         if request.method == 'POST':
             __ret = False
             __msg = "未知错误"
 
-            params = parse_post_params(request)
-            # print(params)
+            params = request.form
 
             username = params.get("username", "").strip()
             email = params.get("email", "").strip()
@@ -91,7 +91,7 @@ def add(request):
                 if len(password) < 6 or len(password) > 16:
                     raise Exception("密码的长度需满足6-16位")
 
-                user = User.objects.filter(username=username)
+                user = User.query.filter_by(username=username).all()
                 if len(user) > 0:
                     raise Exception("用户名已存在")
                 else:
@@ -119,7 +119,7 @@ def add(request):
             else:
                 redirect_url = "/user/add"
 
-            return render(request, 'app/message.html',
+            return render_template('app/message.html',
                           {"msg": __msg, "is_success": __ret, "redirect_url": redirect_url})
         else:
 
@@ -127,31 +127,28 @@ def add(request):
                 "is_active": 1,
             }
             context["handle"] = "add"
-            return render(request, 'app/user/add.html', context)
+            return render_template('app/user/add.html', **context)
 
 
-def edit(request):
+@app.route('/user/edit', methods=['GET', 'POST'])
+def edit():
     login_user_is_superuser = False
     login_user = readUser(request)
     if login_user:
         login_user_is_superuser = login_user.get("is_superuser")
 
     if not login_user_is_superuser:
-        return render(request, 'app/message.html',
+        return render_template('app/message.html',
                       {"msg": "无权限", "is_success": False, "redirect_url": "/user/index"})
     else:
 
-        context = {
-
-        }
+        context = {}
 
         if request.method == 'POST':
             __ret = False
             __msg = "未知错误"
-            params = parse_post_params(request)
+            params = request.form
             handle = params.get("handle")
-
-            # print(params)
 
             user_id = params.get("id")  # 被操作用户id
             is_active = params.get("is_active")
@@ -171,10 +168,7 @@ def edit(request):
                     raise Exception("邮箱不能为空")
                 if re_password == "" and new_password == "":
                     pass
-                    # 未修改密码
                 else:
-                    # 修改了密码
-
                     if new_password == "":
                         raise Exception("新密码不能为空")
                     if re_password == "":
@@ -184,14 +178,12 @@ def edit(request):
                     if len(new_password) < 6 or len(new_password) > 16:
                         raise Exception("新密码的长度需满足6-16位")
 
-                user = User.objects.filter(id=user_id)
+                user = User.query.filter_by(id=user_id).all()
                 if len(user) > 0:
                     user = user[0]
 
-                    # 验证要修改的用户名是否已经存在start
                     if user.username == username:
                         pass
-                        # 用户名未做修改
                     else:
                         filter_username = g_database.select(
                             "select count(1) as count from auth_user where id!=%d and username='%s'" % (
@@ -199,13 +191,12 @@ def edit(request):
                         filter_username_count = int(filter_username[0]["count"])
                         if filter_username_count > 0:
                             raise Exception("新用户名已经存在！")
-                        user.username = username  # 修改了用户名
-                    # 验证要修改的用户名是否已经存在end
+                        user.username = username
 
                     if re_password == "" and new_password == "":
                         pass
                     else:
-                        user.set_password(new_password)  # 修改了密码
+                        user.set_password(new_password)
 
                     user.email = email
                     user.is_active = is_active
@@ -224,32 +215,33 @@ def edit(request):
             else:
                 redirect_url = "/user/edit?id=" + str(user_id)
 
-            return render(request, 'app/message.html',
+            return render_template('app/message.html',
                           {"msg": __msg, "is_success": __ret, "redirect_url": redirect_url})
 
         else:
-            params = parse_get_params(request)
+            params = request.args
             user_id = params.get("id")
             if user_id:
-                user = User.objects.filter(id=user_id)
+                user = User.query.filter_by(id=user_id).all()
                 if len(user) > 0:
                     user = user[0]
                     context["handle"] = "edit"
                     context["user"] = user
-                    return render(request, 'app/user/add.html', context)
+                    return render_template('app/user/add.html', context)
                 else:
-                    return render(request, 'app/message.html',
+                    return render_template('app/message.html',
                                   {"msg": "该用户不存在", "is_success": False, "redirect_url": "/user/index"})
 
             else:
                 return redirect("/user/index")
 
 
-def api_postDel(request):
+@app.route('/user/api/postDel', methods=['POST'])
+def api_postDel():
     ret = False
     msg = "未知错误"
     if request.method == 'POST':
-        params = parse_post_params(request)
+        params = request.form
         try:
             login_user = readUser(request)
             if not login_user:
@@ -266,7 +258,7 @@ def api_postDel(request):
             if login_user_id == user_id:
                 raise Exception("超级管理员不允许删除自己的账号")
 
-            user = User.objects.filter(id=user_id)
+            user = User.query.filter_by(id=user_id).all()
             if len(user) > 0:
                 user = user[0]
                 if user.is_superuser == 1:
@@ -288,47 +280,46 @@ def api_postDel(request):
         "code": 1000 if ret else 0,
         "msg": msg
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
 
 
-def web_logout(request):
-    if request.session.has_key(g_session_key_user):
-        del request.session[g_session_key_user]
+@app.route('/user/logout')
+def web_logout():
+    if g_session_key_user in session:
+        session.pop(g_session_key_user)
 
     return redirect("/")
 
 
-def web_login(request):
-    context = {
-
-    }
+@app.route('/user/login', methods=['GET', 'POST'])
+def web_login():
+    context = {}
 
     if request.method == 'POST':
         code = 0
         msg = "未知错误"
 
-        params = parse_post_params(request)
+        params = request.form
 
         username = params.get("username", None)
         password = params.get("password", None)
         if username and password:
             context["username"] = username
             context["password"] = password
-            user = User.objects.filter(username=username)
+            user = User.query.filter_by(username=username).all()
             if len(user) > 0:
                 user = user[0]
                 if user.check_password(password):
                     if user.is_active:
                         user.last_login = datetime.now()
                         user.save()
-                        request.session[g_session_key_user] = {
+                        session[g_session_key_user] = {
                             "id": user.id,
                             "username": username,
                             "email": user.email,
                             "is_superuser": user.is_superuser,
                             "is_active": user.is_active,
                             "is_staff": user.is_staff,
-                            # "last_login": user.last_login.strftime("%Y-%m-%d %H:%M:%S")
                         }
                         code = 1000
                         msg = "登录成功"
@@ -344,6 +335,6 @@ def web_login(request):
             "code": code,
             "msg": msg
         }
-        return HttpResponseJson(res)
+        return jsonify(res)
 
-    return render(request, 'app/web_login.html', context)
+    return render_template('app/web_login.html', context)

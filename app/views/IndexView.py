@@ -1,17 +1,17 @@
-from app.views.ViewsBase import *
+from flask import Flask, render_template, jsonify
 from app.models import *
 from framework.settings import PROJECT_ADMIN_START_TIMESTAMP
-from django.shortcuts import render
 from app.utils.OSSystem import OSSystem
 
+app = Flask(__name__)
 
-def index(request):
-    context = {
+@app.route('/')
+def index():
+    context = {}
+    return render_template('app/web_index.html', **context)
 
-    }
-    return render(request, 'app/web_index.html', context)
-
-def api_getIndex(request):
+@app.route('/api/getIndex')
+def api_getIndex():
     ret = False
     msg = "未知错误"
     osInfo = {}
@@ -35,4 +35,4 @@ def api_getIndex(request):
         "osInfo": osInfo,
         "appInfo": appInfo
     }
-    return HttpResponseJson(res)
+    return jsonify(res)
