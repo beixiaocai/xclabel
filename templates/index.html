@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xclabel - 数据标注工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='all.min.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航栏 -->
+        <header class="navbar">
+            <div class="logo">
+                <h1 style="cursor: pointer;" onclick="window.location.href='/'">xclabel <span class="version">v2.0</span></h1>
+            </div>
+            <div class="nav-buttons">
+                <button id="openFolderBtn" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> 添加数据集
+                </button>
+                
+                <button id="exportBtn" class="btn btn-success">
+                    <i class="fas fa-download"></i> 导出数据集
+                </button>
+                <button id="trainBtn" class="btn btn-warning">
+                    <i class="fas fa-graduation-cap"></i> 训练
+                </button>
+                
+
+                <button id="clearAnnotationBtn" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> 清除
+                </button>
+                <button id="saveAnnotationBtn" class="btn btn-success">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+                <button id="settingsBtn" class="btn btn-info">
+                    <i class="fas fa-cog"></i> 设置
+                </button>
+
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <div class="main-content">
+            <!-- 左侧图片列表 -->
+            <div class="image-panel">
+                <!--<div class="panel-header">
+                    <h3><i class="fas fa-images"></i> 图片列表</h3>
+                </div>-->
+
+
+                <div class="image-search-container">
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="imageSearch" class="search-input" placeholder="搜索图片...">
+                    </div>
+                    <div class="image-toolbar">
+                        <div class="image-stats">
+                            <span id="imageCount">共 0 张图片</span>
+                        </div>
+                        <div class="image-actions">
+                            <button id="selectAllBtn" class="btn btn-small btn-secondary" title="全选">
+                                <i class="fas fa-check-square"></i>
+                            </button>
+                            <button id="deleteSelectedBtn" class="btn btn-small btn-danger" title="删除选中" disabled>
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <ul id="imageList" class="image-list">
+                    <!-- 图片将通过JavaScript动态加载 -->
+                </ul>
+            </div>
+
+            <!-- 中间图像显示区域 -->
+            <div class="image-container">
+                <div id="imageCanvasContainer">
+                    <canvas id="imageCanvas"></canvas>
+                    <!-- 标注工具 -->
+                    <div class="drawing-tools">
+                        <button id="rectTool" class="tool-btn active" title="矩形工具">
+                            <i class="fas fa-vector-square"></i>
+                        </button>
+                        <button id="polygonTool" class="tool-btn" title="多边形工具">
+                            <i class="fas fa-draw-polygon"></i>
+                        </button>
+                        <button id="moveTool" class="tool-btn" title="移动工具">
+                            <i class="fas fa-arrows-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="noImageMessage" class="no-image-message">
+                    <p><i class="fas fa-image fa-3x"></i></p>
+                    <p>请选择一张图片开始标注</p>
+                </div>
+            </div>
+
+            <!-- 右侧标注工具 -->
+            <div class="annotation-panel">
+                <!--<h3><i class="fas fa-edit"></i> 标注工具</h3>-->
+
+                
+                <div class="tool-section">
+                    <h4>标签管理</h4>
+                    <div class="class-controls">
+                        <input type="text" id="newClassInput" placeholder="新标签">
+                        <input type="color" id="newClassColor" value="#3aa757" class="color-picker">
+                        <button id="addClassBtn" class="btn btn-small btn-primary">
+                            <i class="fas fa-plus"></i> 添加
+                        </button>
+                    </div>
+                    <ul id="classList" class="class-list">
+                        <!-- 类别将通过JavaScript动态加载 -->
+                    </ul>
+                </div>
+
+                <div class="tool-section">
+                    <h4>标注列表</h4>
+                    <ul id="currentAnnotations" class="annotation-list">
+                        <!-- 当前标注将通过JavaScript动态加载 -->
+                    </ul>
+                </div>
+
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出模态框 -->
+    <div id="exportModal" class="modal export-modal">
+        <div class="modal-content export-modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-download"></i> 导出数据集</h2>
+            <form id="exportForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="trainRatio">训练集比例:</label>
+                        <input type="number" id="trainRatio" name="trainRatio" min="0" max="1" step="0.1" value="0.7">
+                    </div>
+                    <div class="form-group">
+                        <label for="valRatio">验证集比例:</label>
+                        <input type="number" id="valRatio" name="valRatio" min="0" max="1" step="0.1" value="0.2">
+                    </div>
+                    <div class="form-group">
+                        <label for="testRatio">测试集比例:</label>
+                        <input type="number" id="testRatio" name="testRatio" min="0" max="1" step="0.1" value="0.1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>样本选择:</label>
+                    <div class="sample-selection">
+                        <label>
+                            <input type="radio" name="sampleSelection" value="all" checked> 所有图片
+                        </label>
+                        <label>
+                            <input type="radio" name="sampleSelection" value="annotated"> 仅已标注的图片
+                        </label>
+                        <label>
+                            <input type="radio" name="sampleSelection" value="unannotated"> 仅未标注的图片
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>导出数据类型:</label>
+                    <div class="export-type-selection">
+                        <label>
+                            <input type="radio" name="exportDataType" value="yolo" checked> YOLO格式
+                        </label>
+                        <label class="disabled">
+                            <input type="radio" name="exportDataType" value="resnet" disabled> ResNet格式
+                        </label>
+                        <label class="disabled">
+                            <input type="radio" name="exportDataType" value="videonet" disabled> VideoNet格式
+                        </label>
+                          <label class="disabled">
+                            <input type="radio" name="exportDataType" value="audionet" disabled> AudioNet格式
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>类别选择:</label>
+                    <div id="classCheckboxes" class="class-checkbox-container">
+                        <!-- 类别复选框将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+                
+                <!-- 文件前缀和导出按钮在同一行 -->
+                <div class="form-row" style="display: flex; align-items: flex-end; gap: 10px;">
+                    <div class="form-group" style="width: 200px;">
+                        <label for="exportPrefix">导出文件前缀 (可选):</label>
+                        <input type="text" id="exportPrefix" placeholder="输入文件前缀" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success" id="exportSubmitBtn" style="width: auto; min-width: 100px; height: 36px;">
+                            <i class="fas fa-download"></i> 导出
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 加载指示器 -->
+                <div id="exportLoadingIndicator" class="loading-indicator" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> 正在处理数据集导出，请稍候...
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div id="settingsModal" class="modal settings-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-cog"></i> 设置</h2>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="clearShortcut">清除标注快捷键:</label>
+                    <input type="text" id="clearShortcut" placeholder="请输入快捷键组合" value="Ctrl+Shift+D">
+                </div>
+                <div class="form-group">
+                    <label for="saveShortcut">保存标注快捷键:</label>
+                    <input type="text" id="saveShortcut" placeholder="请输入快捷键组合" value="Ctrl+S">
+                </div>
+                <div style="display: flex; justify-content: flex-start; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" id="saveSettingsBtn">
+                        <i class="fas fa-save"></i> 保存设置
+                    </button>
+                </div>
+            </form>
+            
+            <!-- 作者信息 -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1.1em; color: #555;"><i class="fas fa-user"></i> 关于作者</h3>
+                <p style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                    <strong>作者:</strong> <a href="https://space.bilibili.com/487906612" target="_blank" style="color: #339af0; text-decoration: none;">北小菜</a>
+                </p>
+                <p style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                    <strong>项目主页:</strong> <a href="https://github.com/beixiaocai/xclabel" target="_blank" style="color: #339af0; text-decoration: none;">GitHub - beixiaocai/xclabel</a>
+                </p>
+                <p style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                    <strong>版本:</strong> v2.0
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据集上传模态框 -->
+    <div id="datasetModal" class="modal dataset-modal">
+        <div class="modal-content dataset-modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-upload"></i> 添加数据集</h2>
+            <div class="dataset-tabs">
+                <button class="tab-btn active" data-tab="image">图片文件夹</button>
+                <button class="tab-btn" data-tab="video">视频文件</button>
+                <button class="tab-btn" data-tab="labelme">labelme数据集</button>
+            </div>
+            <div class="tab-content">
+                <!-- 图片文件夹上传 -->
+                <div class="tab-pane active" id="image-tab">
+                    <div class="upload-area" id="imageUploadArea">
+                        <i class="fas fa-folder-open fa-3x"></i>
+                        <p>拖拽图片文件到此处或点击选择文件夹</p>
+                        <input type="file" id="folderInput" multiple accept="image/*" style="display: none;">
+                        <button id="selectFolderBtn" class="btn btn-primary">选择图片文件</button>
+                    </div>
+                    <div class="upload-actions" style="margin-top: 15px; text-align: center;">
+                        <button id="uploadImagesBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-upload"></i> 上传图片到数据集
+                        </button>
+                    </div>
+                </div>
+                <!-- 视频文件上传 -->
+                <div class="tab-pane" id="video-tab">
+                    <div class="upload-area" id="videoUploadArea">
+                        <i class="fas fa-video fa-3x"></i>
+                        <p>拖拽视频文件到此处或点击选择视频</p>
+                        <input type="file" id="videoInput" accept="video/*" style="display: none;">
+                        <button id="selectVideoBtn" class="btn btn-primary">选择视频文件</button>
+                        <div id="selectedVideoInfo" style="margin-top: 10px; font-size: 0.9em; color: #666; display: none;">
+                            <strong>已选择:</strong> <span id="selectedVideoName"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="frameInterval">抽帧间隔 (帧):</label>
+                            <input type="number" id="frameInterval" min="1" max="1000" value="30">
+                            <small>每隔指定帧数保存一帧作为样本</small>
+                        </div>
+                        
+                        <button id="extractFramesBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-film"></i> 抽帧并添加到数据集
+                        </button>
+                    </div>
+                </div>
+                <!-- LabelMe数据集上传 -->
+                <div class="tab-pane" id="labelme-tab">
+                    <div class="upload-area" id="labelmeUploadArea">
+                        <i class="fas fa-file-code fa-3x"></i>
+                        <p>拖拽LabelMe数据集文件到此处或点击选择文件夹</p>
+                        <input type="file" id="labelmeInput" multiple style="display: none;">
+                        <button id="selectLabelMeBtn" class="btn btn-primary">选择labelme数据集</button>
+                        <div class="info-text">
+                            <p><strong>说明：</strong>请选择包含图片和对应JSON标注文件的labelme数据集文件夹</p>
+                        </div>
+                    </div>
+                    <div class="upload-actions" style="margin-top: 15px; text-align: center;">
+                        <button id="uploadLabelMeBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-upload"></i> 上传labelme数据集
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑标签模态框 -->
+    <div id="editClassModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-edit"></i> 编辑标签</h2>
+            <form id="editClassForm">
+                <input type="hidden" id="editClassIndex">
+                <div class="form-group">
+                    <label for="editClassName">标签名称:</label>
+                    <input type="text" id="editClassName" placeholder="请输入标签名称">
+                </div>
+                <div class="form-group">
+                    <label for="editClassColor">标签颜色:</label>
+                    <input type="color" id="editClassColor" class="color-picker">
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> 保存更改
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 模型配置模态框 -->
+    <div id="modelConfigModal" class="modal model-config-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-robot"></i> <span id="modelConfigTitle">添加模型配置</span></h2>
+            <form id="modelConfigForm">
+                <input type="hidden" id="modelConfigId">
+                <div class="form-group">
+                    <label for="modelConfigName">模型名称:</label>
+                    <input type="text" id="modelConfigName" placeholder="请输入模型名称" required>
+                </div>
+                <div class="form-group">
+                    <label for="modelConfigApiKey">API Key:</label>
+                    <input type="password" id="modelConfigApiKey" placeholder="请输入API密钥" required>
+                </div>
+                <div class="form-group">
+                    <label for="modelConfigEndpoint">API Endpoint:</label>
+                    <input type="text" id="modelConfigEndpoint" placeholder="请输入API端点地址">
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="modelConfigDefault">
+                        <span>设为默认模型</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancelModelConfig" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> 取消
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> 保存配置
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

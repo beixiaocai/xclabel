@@ -1,18 +1,110 @@
 ## xclabel
 * 作者：北小菜 
-* 作者主页：https://www.beixiaocai.com
+* 作者主页：https://www.yuturuishi.com
 * gitee开源地址：https://gitee.com/Vanishi/xclabel
 * github开源地址：https://github.com/beixiaocai/xclabel
 
-## 软件介绍
-- xclabel是一款开源支持多人协作的，样本导入+样本标注+模型训练+模型管理+模型测试+模型导出的工具
-- 软件采用Python+Django开发，因此跨平台支持Windows/Linux/Mac
+### 软件介绍
+- xclabel是一款开源的图像标注工具，支持样本导入、样本标注、数据集导出等功能
+- 软件采用Python+Flask开发，跨平台支持Windows/Linux/Mac
+- 支持多种标注类型，包括矩形、多边形等
+- 支持导入图片文件夹，导入视频文件，导入labelme格式数据集
+- 支持导出YOLO格式数据集
+- 简洁直观的用户界面，易于使用
 
-## 各位用户好，即日起，xclabel将迁移合并到xcnvs，xclabel将永久停止更新
-* xclabel的全部功能，已经全部整合到xcnvs最新版v2.4，并且在迁移过程中做了很多优化
-* xcnvs gitee开源地址：https://gitee.com/Vanishi/xcnvs
-* xcnvs github开源地址：https://github.com/beixiaocai/xcnvs
+### 版本历史
 
-### xclabel原始项目在哪里？
-* xclabel原始项目位于分支dev：https://gitee.com/Vanishi/xclabel/tree/dev
-* 鉴于xclabel将永久停止更新，因此如果是感兴趣想要学习的用户，建议去学习xcnvs，而不是学习xclabel的dev分支
+#### v2.0 (当前版本)
+- **架构升级**：从Django迁移到Flask，简化了项目结构
+- **功能增强**：
+  - 支持视频帧提取和标注
+  - 支持LabelMe数据集导入
+  - 支持YOLO格式数据集导出，可自定义训练/验证/测试比例
+  - 新增标签管理功能，支持添加、编辑、删除标签
+  - 优化了标注工具，支持矩形、多边形等多种标注类型
+- **UI优化**：
+  - 重新设计了用户界面，更加简洁直观
+  - 优化了标签管理界面，支持标签颜色自定义
+  - 改进了导出数据集弹框，支持文件前缀设置
+  - 优化了toast提示，更加醒目易用
+- **性能提升**：
+  - 优化了图片加载和标注渲染性能
+  - 改进了数据存储方式，提高了数据读写效率
+
+#### v1.0
+- **基础功能**：
+  - 支持图像标注，包括矩形和多边形标注
+  - 支持标签管理
+  - 支持标注数据导出
+- **技术栈**：Python + Django
+- **架构**：采用传统的Django MVC架构
+- v1.0 版本分支 https://gitee.com/Vanishi/xclabel/tree/v1.0
+
+### 主要功能
+1. **图像标注**：支持矩形、多边形等多种标注类型
+2. **数据集管理**：支持图像、视频、labelme数据集导入
+3. **标注导出**：支持YOLO格式数据集导出，可自定义训练/验证/测试比例
+4. **标签管理**：支持添加、编辑、删除标签，自定义标签颜色
+5. **快捷键支持**：支持自定义快捷键，提高标注效率
+6. **实时保存**：标注数据实时保存，避免数据丢失
+
+### 使用说明
+1. **安装依赖**：
+   ```bash
+   # 创建虚拟环境
+   python -m venv venv
+   
+   # 激活虚拟环境
+   # Windows
+   venv\Scripts\activate
+   # Linux/Mac
+   source venv/bin/activate
+   
+   # 安装依赖
+   pip install -r requirements.txt
+   ```
+
+2. **启动服务**：
+   ```bash
+   python app.py
+   ```
+
+3. **访问服务**：
+   在浏览器输入 http://127.0.0.1:5000 即可开始使用
+
+### 项目结构
+```
+xclabel/
+├── app.py              # 主应用文件
+├── templates/
+│   └── index.html      # 主页面模板
+├── static/
+│   ├── style.css       # 样式文件
+│   ├── script.js       # 脚本文件
+│   └── all.min.css     # Font Awesome图标库
+├── static/annotations/ # 标注数据存储目录
+├── static/images/      # 图片存储目录
+└── README.md           # 项目说明文档
+```
+
+### 标注流程
+1. **添加数据集**：点击右上角"添加数据集"按钮，选择要标注的图片、视频或LabelMe数据集
+2. **创建标签**：在右侧标签管理中添加需要的标签
+3. **开始标注**：选择左侧图片列表中的图片，使用左侧工具进行标注
+4. **导出数据集**：标注完成后，点击右上角"导出数据集"按钮，选择导出格式和参数
+
+### 快捷键说明
+- **Ctrl+S**：保存标注
+- **Ctrl+Shift+D**：清除标注
+
+### 技术栈
+- **后端**：Flask
+- **前端**：HTML, CSS, JavaScript
+- **数据库**：JSON文件存储
+- **图像处理**：OpenCV
+
+### 授权协议
+- 本项目自有代码使用宽松的MIT协议，在保留版权信息的情况下可以自由应用于各自商用、非商业的项目。
+- 本项目使用了一些第三方库，使用本项目时请遵循相应第三方库的授权协议。
+- 由于使用本项目而产生的商业纠纷或侵权行为一概与本项目及开发者无关，请自行承担法律风险。
+

@@ -1,0 +1,9 @@
+﻿# clion
+.idea/
+# vs
+.vs
+docs/*
+venv*
+__pycache__
+app/__pycache__
+static/storage
