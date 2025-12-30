@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动标注 - xclabel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='all.min.css') }}">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        /* 自动标注页面样式 */
+        .auto-label-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            margin: 0 auto;
+            max-width: 1600px;
+            width: 100%;
+        }
+
+        .tab-content {
+            flex: 1;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+        }
+
+        .tab-nav {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .tab-btn:hover {
+            color: #495057;
+            background-color: #f8f9fa;
+        }
+
+        .tab-btn.active {
+            color: #339af0;
+            border-bottom-color: #339af0;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        /* 通用输入框样式 */
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="password"],
+        .form-group input[type="file"],
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: white;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 带有图标的输入框样式 */
+        .form-group input[type="text"].with-icon,
+        .form-group input[type="number"].with-icon,
+        .form-group input[type="password"].with-icon,
+        .form-group select.with-icon {
+            padding-left: 36px;
+        }
+
+        /* 增强的输入框聚焦效果 */
+        .form-group input[type="text"]:focus,
+        .form-group input[type="number"]:focus,
+        .form-group input[type="password"]:focus,
+        .form-group select:focus {
+            border-color: #339af0;
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.1), inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+        }
+
+        /* 确保带有图标的输入框在聚焦时保持左侧padding和右侧padding */
+        .form-group input[type="text"].with-icon:focus,
+        .form-group input[type="number"].with-icon:focus,
+        .form-group select.with-icon:focus {
+            padding-left: 36px !important;
+        }
+
+        /* 确保API密钥输入框在聚焦时保持右侧padding，以容纳切换图标 */
+        .form-group input[type="password"].with-icon:focus {
+            padding-left: 36px !important;
+            padding-right: 40px !important;
+        }
+
+        /* 确保图标元素始终显示在输入框上方 */
+        .form-group .input-with-icon {
+            position: relative;
+        }
+
+        /* 只针对直接子级的i元素（左侧图标） */
+        .form-group .input-with-icon > i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+            font-size: 14px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* 按钮内的图标保持默认样式 */
+        .form-group .input-with-icon button i {
+            position: static;
+            transform: none;
+            color: inherit;
+            font-size: inherit;
+            pointer-events: auto;
+        }
+
+        /* 针对提示词文本区域的图标 */
+        .form-group .input-with-icon textarea {
+            padding-left: 40px;
+            padding-top: 16px;
+        }
+
+        .form-group .input-with-icon textarea:focus {
+            padding-left: 40px !important;
+            padding-top: 16px !important;
+        }
+
+        /* 增强的文本区域样式 */
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: white;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* 文本区域聚焦效果 */
+        .form-group textarea:focus {
+            border-color: #339af0;
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.1), inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+        }
+
+        /* API密钥输入框特殊样式 */
+        #apiKey {
+            background-color: #f8f9fa;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #apiKey:focus {
+            background-color: white;
+        }
+
+        /* 提示词文本区域特殊样式 */
+        #prompt {
+            background-color: #fafafa;
+            border-left: 4px solid #339af0;
+        }
+
+        #prompt:focus {
+            background-color: white;
+            border-left-color: #258cd1;
+        }
+
+        /* API配置区域特殊样式 */
+        .tool-section h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* API配置区域图标 */
+        .tool-section h4::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background-color: #339af0;
+            border-radius: 2px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: #339af0;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #258cd1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(51, 154, 240, 0.2);
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.2);
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(108, 117, 125, 0.2);
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(255, 193, 7, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ced4da;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #339af0;
+            background-color: #e3f2fd;
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            margin: 0 0 15px 0;
+            color: #6c757d;
+        }
+
+        .result-area {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #339af0;
+        }
+
+        .loading-indicator i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            margin-top: 10px;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            border-left: 4px solid transparent;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-left-color: #155724;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-left-color: #721c24;
+        }
+
+        .status-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            border-left-color: #0c5460;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            padding: 18px;
+            margin-bottom: 18px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: #495057;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 工具区域 */
+        .tool-section {
+            margin-bottom: 16px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f0f0f0;
+        }
+
+        /* API配置和提示词区域分隔线 */
+        .tool-section + .tool-section {
+            margin-top: 16px;
+        }
+        
+        /* 图片放大模态框样式 */
+        .modal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+        
+        .modal-content {
+            margin: 50px auto 20px auto;
+            display: block;
+            max-width: 90%;
+            max-height: 85%;
+            animation: zoom 0.3s ease-in-out;
+        }
+        
+        @keyframes zoom {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        /* 可点击图片样式 */
+        .clickable-image {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .clickable-image:hover {
+            transform: scale(1.02);
+            filter: brightness(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="auto-label-container">
+        <!-- 顶部导航栏 -->
+        <header class="navbar">
+            <div class="logo">
+                <h1 style="cursor: pointer;" onclick="window.location.href='/'">xclabel <span class="version">v2.3</span></h1>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn btn-primary" onclick="window.location.href='/file-manager'">
+                    <i class="fas fa-folder-open"></i> 文件管理
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    <i class="fas fa-home"></i> 返回主页
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <div class="main-content">
+            <!-- 左侧工具面板 -->
+            <div class="image-panel" style="width: 350px; background-color: white; border-right: 1px solid #e9ecef;">
+                <div style="padding: 15px;">
+                    <h3><i class="fas fa-robot"></i> 自动标注</h3>
+                    <p style="color: #6c757d; font-size: 14px; margin-bottom: 20px;">
+                        使用大模型API进行自动标注，支持图片和视频
+                    </p>
+
+                    <!-- 配置区域 -->
+                    <div class="tool-section">
+                        <h4>API配置</h4>
+                        <div class="form-group">
+                            <label for="inferenceTool">推理工具</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-server"></i>
+                                <select id="inferenceTool" class="with-icon">
+                                    <option value="LMStudio" selected>LMStudio</option>
+                                    <option value="vLLM">vLLM</option>
+                                    <option value="ollama">ollama</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="model">模型名称</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-brain"></i>
+                                <input type="text" id="model" placeholder="qwen/qwen3-vl-8b" value="qwen/qwen3-vl-8b" class="with-icon">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="apiUrl">模型API地址</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-link"></i>
+                                <input type="text" id="apiUrl" placeholder="http://192.168.1.105:1234/v1" value="http://192.168.1.105:1234/v1" class="with-icon">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="apiKey">API密钥（可选）</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-key"></i>
+                                <input type="password" id="apiKey" placeholder="输入API密钥" class="with-icon" style="padding-right: 45px;">
+                                <button type="button" onclick="toggleApiKeyVisibility()" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #adb5bd; cursor: pointer; font-size: 13px; z-index: 15; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                                    <i class="fas fa-eye-slash" id="apiKeyToggleIcon" style="margin: 0; font-size: 12px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="timeout">超时时间（秒）</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-clock"></i>
+                                <input type="number" id="timeout" value="30" min="1" max="300" class="with-icon">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tool-section">
+                        <h4>提示词</h4>
+                        <div class="form-group">
+                            <div class="input-with-icon">
+                                <i class="fas fa-comment-dots"></i>
+                                <textarea id="prompt" rows="4" placeholder="检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}">检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间内容区域 -->
+            <div style="flex: 1; overflow-y: auto; padding: 15px;">
+                <!-- 标签页导航 -->
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="image" onclick="switchTab('image')">图片标注</button>
+                    <button class="tab-btn" data-tab="video" onclick="switchTab('video')">视频标注</button>
+                    <button class="tab-btn" data-tab="api-test" onclick="switchTab('api-test')">API测试</button>
+                </div>
+
+                <!-- 标签页内容 -->
+                <div class="tab-content">
+                    <!-- 图片标注 -->
+                    <div class="tab-pane active" id="image-tab">
+                        <div class="card">
+                            <h3><i class="fas fa-image"></i> 图片自动标注</h3>
+                            <form id="imageForm">
+                                <div class="form-group">
+                                    <label for="imageFile">选择图片文件</label>
+                                    <input type="file" id="imageFile" accept="image/*" multiple>
+                                </div>
+                                <div class="form-group">
+                                    <label for="imageOutputDir">输出目录</label>
+                                    <input type="text" id="imageOutputDir" placeholder="uploads/auto/output" value="uploads/auto/output">
+                                </div>
+                                <div class="form-group">
+                                    <label for="imagePrompt">可选提示词（不输入则使用左侧公用提示词）</label>
+                                    <textarea id="imagePrompt" rows="2" placeholder=""></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-play"></i> 开始标注
+                                </button>
+                                <div id="imageLoading" class="loading-indicator" style="display: none; margin-left: 10px;">
+                                    <i class="fas fa-spinner fa-spin"></i> 正在处理...
+                                </div>
+                            </form>
+                            <div id="imageResult" class="result-area" style="margin-top: 20px; display: none;"></div>
+                            
+                            <!-- 图片显示区域 -->
+                            <div id="imageDisplay" style="margin-top: 20px; display: none;">
+                                <div class="status-message status-info">
+                                    <h4 style="margin-top: 0; margin-bottom: 15px;"><i class="fas fa-images"></i> 标注结果</h4>
+                                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                                        <!-- 原图 -->
+                                        <div style="flex: 1; min-width: 300px; max-width: 500px;">
+                                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #495057;">原图</h5>
+                                            <div style="border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #f8f9fa;">
+                                                <img id="originalImage" src="" alt="原图" class="clickable-image" style="width: 100%; height: auto; display: block;">
+                                            </div>
+                                        </div>
+                                        <!-- 渲染图 -->
+                                        <div style="flex: 1; min-width: 300px; max-width: 500px;">
+                                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #495057;">渲染图</h5>
+                                            <div style="border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #f8f9fa;">
+                                                <img id="renderedImage" src="" alt="渲染图" class="clickable-image" style="width: 100%; height: auto; display: block;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 视频标注 -->
+                    <div class="tab-pane" id="video-tab">
+                        <div class="card">
+                            <h3><i class="fas fa-video"></i> 视频自动标注</h3>
+                            <form id="videoForm">
+                                <div class="form-group">
+                                    <label for="videoFile">视频文件/RTSP流</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <input type="text" id="videoFile" placeholder="test.mp4 或 rtsp://example.com/stream" style="flex: 1;">
+                                        <input type="file" id="videoUpload" accept="video/*" style="display: none;">
+                                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('videoUpload').click();">
+                                            <i class="fas fa-upload"></i> 选择文件
+                                        </button>
+                                    </div>
+                                    <div id="uploadStatus" style="margin-top: 5px; font-size: 12px; color: #6c757d;"></div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="frameInterval">抽帧间隔</label>
+                                        <input type="number" id="frameInterval" value="10" min="1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="videoOutputDir">输出目录</label>
+                                        <input type="text" id="videoOutputDir" placeholder="uploads/auto/output" value="uploads/auto/output">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="videoPrompt">可选提示词（不输入则使用左侧公用提示词）</label>
+                                    <textarea id="videoPrompt" rows="2" placeholder=""></textarea>
+                                </div>
+                                <div class="form-row" style="align-items: center;">
+                                    <button type="submit" class="btn btn-success" id="startVideoBtn">
+                                        <i class="fas fa-play"></i> 开始标注
+                                    </button>
+                                    <button type="button" class="btn btn-danger" id="stopVideoBtn" style="display: none; margin-left: 10px; flex: 0 0 auto; width: auto;">
+                                    <i class="fas fa-stop"></i> 停止标注
+                                </button>
+                                    <div id="videoLoading" class="loading-indicator" style="display: none; margin-left: 10px;">
+                                        <i class="fas fa-spinner fa-spin"></i> 正在处理...
+                                    </div>
+                                </div>
+                                <!-- 任务ID显示（用于停止任务） -->
+                                <div id="currentTaskId" style="margin-top: 10px; font-size: 14px; color: #6c757d; display: none;">
+                                    <strong>当前任务ID:</strong> <span id="taskIdValue"></span>
+                                </div>
+                            </form>
+                            <!-- 进度显示区域 -->
+                            <div id="videoProgress" style="margin-top: 20px; display: none;">
+                                <div class="status-message status-info">
+                                    <h4 style="margin-top: 0; margin-bottom: 10px;"><i class="fas fa-tasks"></i> 标注进度</h4>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>状态:</strong> <span id="progressStatus">等待开始</span>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>总帧数:</strong> <span id="totalFrames">0</span>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>已处理帧数:</strong> <span id="processedFrames">0</span>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>检测目标数:</strong> <span id="totalDetections">0</span>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>输出目录:</strong> <span id="outputDirectory"></span>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>开始时间:</strong> <span id="startTime"></span>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>耗时:</strong> <span id="elapsedTime"></span>
+                                    </div>
+                                    <div class="progress" style="margin-top: 15px; height: 20px;">
+                                        <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 实时帧显示区域 -->
+                            <div id="frameDisplay" style="margin-top: 20px; display: none;">
+                                <div class="status-message status-info">
+                                    <h4 style="margin-top: 0; margin-bottom: 15px;"><i class="fas fa-images"></i> 实时帧显示</h4>
+                                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                                        <!-- 当前处理帧 -->
+                                        <div style="flex: 1; min-width: 300px; max-width: 500px;">
+                                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #495057;">当前处理帧</h5>
+                                            <div style="border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #f8f9fa;">
+                                                <img id="currentFrame" src="" alt="当前处理帧" class="clickable-image" style="width: 100%; height: auto; display: block;">
+                                            </div>
+                                        </div>
+                                        <!-- 渲染后图片 -->
+                                        <div style="flex: 1; min-width: 300px; max-width: 500px;">
+                                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #495057;">AI标注结果</h5>
+                                            <div style="border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #f8f9fa;">
+                                                <img id="labeledFrame" src="" alt="AI标注结果" class="clickable-image" style="width: 100%; height: auto; display: block;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="videoResult" class="result-area" style="margin-top: 20px; display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- API测试 -->
+                    <div class="tab-pane" id="api-test-tab">
+                        <div class="card">
+                            <h3><i class="fas fa-cogs"></i> API测试</h3>
+                            <form id="apiTestForm">
+                                <div class="form-group">
+                                    <label for="testImage">测试图片</label>
+                                    <input type="file" id="testImage" accept="image/*">
+                                </div>
+                                <div class="form-group">
+                                    <label for="apiTestPrompt">可选提示词（不输入则使用左侧公用提示词）</label>
+                                    <textarea id="apiTestPrompt" rows="2" placeholder=""></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-play"></i> 测试API
+                                </button>
+                                <div id="apiTestLoading" class="loading-indicator" style="display: none; margin-left: 10px;">
+                                    <i class="fas fa-spinner fa-spin"></i> 正在测试...
+                                </div>
+                            </form>
+                            <div id="apiTestResult" class="result-area" style="margin-top: 20px; display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 标签页切换函数
+        function switchTab(tabId) {
+            // 移除所有活动状态
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => btn.classList.remove('active'));
+            
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+            
+            // 添加当前活动状态
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化SocketIO连接
+            initSocketIO();
+
+            // 表单提交事件
+            setupFormSubmissions();
+            
+            // 初始化图片放大功能
+            initImageZoom();
+        });
+
+        // 设置表单提交事件
+        function setupFormSubmissions() {
+            // 图片标注表单
+            document.getElementById('imageForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleImageAnnotation();
+            });
+
+            // 视频标注表单
+            document.getElementById('videoForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleVideoAnnotation();
+            });
+
+            // 视频停止按钮事件
+            document.getElementById('stopVideoBtn').addEventListener('click', function() {
+                handleStopVideoAnnotation();
+            });
+
+            // API测试表单
+            document.getElementById('apiTestForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                testApi();
+            });
+            
+            // 视频文件上传事件
+            document.getElementById('videoUpload').addEventListener('change', function(e) {
+                handleVideoUpload(e.target.files[0]);
+            });
+        }
+        
+        // 处理视频文件上传
+        function handleVideoUpload(file) {
+            if (!file) return;
+            
+            // 检查文件类型是否为视频
+            if (!file.type.startsWith('video/')) {
+                alert('请选择视频文件！');
+                return;
+            }
+            
+            const uploadStatus = document.getElementById('uploadStatus');
+            uploadStatus.textContent = '正在上传...';
+            uploadStatus.style.color = '#007bff';
+            
+            // 创建FormData对象
+            const formData = new FormData();
+            formData.append('video', file);
+            
+            // 发送上传请求
+            fetch('/api/upload-video', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 上传成功，更新视频文件输入框
+                    document.getElementById('videoFile').value = data.filePath;
+                    uploadStatus.textContent = '上传成功！';
+                    uploadStatus.style.color = '#28a745';
+                    
+                    // 3秒后清除上传状态
+                    setTimeout(() => {
+                        uploadStatus.textContent = '';
+                    }, 3000);
+                } else {
+                    uploadStatus.textContent = '上传失败：' + data.error;
+                    uploadStatus.style.color = '#dc3545';
+                }
+            })
+            .catch(error => {
+                uploadStatus.textContent = '上传失败：' + error.message;
+                uploadStatus.style.color = '#dc3545';
+            });
+        }
+
+        // 切换API密钥可见性
+        function toggleApiKeyVisibility() {
+            const apiKeyInput = document.getElementById('apiKey');
+            const toggleIcon = document.getElementById('apiKeyToggleIcon');
+            
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            } else {
+                apiKeyInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            }
+        }
+
+        // 获取API配置
+        function getApiConfig() {
+            return {
+                inferenceTool: document.getElementById('inferenceTool').value,
+                model: document.getElementById('model').value,
+                apiUrl: document.getElementById('apiUrl').value,
+                apiKey: document.getElementById('apiKey').value,
+                timeout: document.getElementById('timeout').value,
+                prompt: document.getElementById('prompt').value
+            };
+        }
+
+        // 处理图片标注
+        function handleImageAnnotation() {
+            const formData = new FormData();
+            const files = document.getElementById('imageFile').files;
+            const outputDir = document.getElementById('imageOutputDir').value;
+            const config = getApiConfig();
+            
+            // 获取图片标签页特定的提示词，如果有则优先使用
+            const imagePrompt = document.getElementById('imagePrompt').value.trim();
+            const prompt = imagePrompt || config.prompt;
+
+            if (files.length === 0) {
+                showMessage('imageResult', '请选择图片文件', 'error');
+                return;
+            }
+
+            // 添加文件和配置
+            for (let i = 0; i < files.length; i++) {
+                formData.append('images', files[i]);
+            }
+            formData.append('output_dir', outputDir);
+            formData.append('api_url', config.apiUrl);
+            formData.append('api_key', config.apiKey);
+            formData.append('timeout', config.timeout);
+            formData.append('prompt', prompt);
+            formData.append('model', config.model);
+            formData.append('inferenceTool', config.inferenceTool);
+
+            // 记录开始时间
+            const startTime = new Date();
+
+            // 显示加载状态
+            document.getElementById('imageLoading').style.display = 'inline-flex';
+            document.getElementById('imageResult').style.display = 'none';
+
+            // 发送请求
+            fetch('/api/auto-label/image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 计算结束时间和耗时
+                const endTime = new Date();
+                const duration = endTime - startTime;
+
+                document.getElementById('imageLoading').style.display = 'none';
+                if (data.success) {
+                    const message = `标注完成！<br>
+                                    开始时间: ${startTime.toLocaleString()}<br>
+                                    结束时间: ${endTime.toLocaleString()}<br>
+                                    总计耗时: ${(duration / 1000).toFixed(2)}秒<br>
+                                    处理了 ${data.processed} 张图片，检测到 ${data.detections} 个目标`;
+                    showMessage('imageResult', message, 'success');
+                    
+                    // 如果有图片数据，显示原图和渲染图
+                    if (data.images && data.images.length > 0) {
+                        const firstImage = data.images[0];
+                        
+                        // 设置原图
+                        document.getElementById('originalImage').src = firstImage.original_image;
+                        
+                        // 设置渲染图
+                        document.getElementById('renderedImage').src = firstImage.labeled_image;
+                        
+                        // 显示图片区域
+                        document.getElementById('imageDisplay').style.display = 'block';
+                    }
+                } else {
+                    showMessage('imageResult', `标注失败：${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                // 计算结束时间和耗时
+                const endTime = new Date();
+                const duration = endTime - startTime;
+
+                document.getElementById('imageLoading').style.display = 'none';
+                const message = `请求失败：${error.message}<br>
+                                开始时间: ${startTime.toLocaleString()}<br>
+                                结束时间: ${endTime.toLocaleString()}<br>
+                                总计耗时: ${(duration / 1000).toFixed(2)}秒`;
+                showMessage('imageResult', message, 'error');
+            });
+        }
+
+        // 全局变量
+        let currentTaskId = null;
+        let socket = null;
+        let startTime = null;
+
+        // 初始化SocketIO连接
+        function initSocketIO() {
+            // 连接SocketIO服务器
+            socket = io();
+            
+            // 监听连接事件
+            socket.on('connect', () => {
+                console.log('已连接到SocketIO服务器');
+            });
+            
+            // 监听断开连接事件
+            socket.on('disconnect', () => {
+                console.log('已断开与SocketIO服务器的连接');
+            });
+            
+            // 监听进度更新事件
+            socket.on('progress_update', (data) => {
+                updateProgress(data);
+            });
+        }
+
+        // 更新进度显示
+        function updateProgress(data) {
+            // 检查是否是当前任务的进度更新
+            if (data.task_id !== currentTaskId) {
+                return;
+            }
+            
+            // 显示进度区域
+            document.getElementById('videoProgress').style.display = 'block';
+            
+            // 更新进度信息
+            document.getElementById('progressStatus').textContent = data.status;
+            document.getElementById('totalFrames').textContent = data.frame_count;
+            document.getElementById('processedFrames').textContent = data.processed_count;
+            document.getElementById('totalDetections').textContent = data.total_detections;
+            document.getElementById('outputDirectory').textContent = data.output_dir;
+            
+            // 处理开始时间和耗时
+            if (data.start_time && data.current_time) {
+                // 格式化开始时间
+                const startTime = new Date(data.start_time);
+                const formattedStartTime = startTime.toLocaleString();
+                document.getElementById('startTime').textContent = formattedStartTime;
+                
+                // 计算耗时
+                const currentTime = new Date(data.current_time);
+                const elapsedMilliseconds = currentTime - startTime;
+                const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
+                const hours = Math.floor(elapsedSeconds / 3600);
+                const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+                const seconds = elapsedSeconds % 60;
+                
+                // 格式化耗时
+                let formattedElapsedTime = '';
+                if (hours > 0) {
+                    formattedElapsedTime += `${hours}小时`;
+                }
+                if (minutes > 0 || hours > 0) {
+                    formattedElapsedTime += `${minutes}分钟`;
+                }
+                formattedElapsedTime += `${seconds}秒`;
+                document.getElementById('elapsedTime').textContent = formattedElapsedTime;
+            }
+            
+            // 计算进度百分比（对于RTSP流，总帧数未知，所以只显示已处理帧数）
+            const progressText = `${data.processed_count} 帧`;
+            document.getElementById('progressBar').textContent = progressText;
+            document.getElementById('progressBar').style.width = '100%';
+            
+            // 处理实时帧数据
+            if (data.current_frame && data.labeled_frame) {
+                // 显示实时帧显示区域
+                document.getElementById('frameDisplay').style.display = 'block';
+                
+                // 更新当前处理帧
+                document.getElementById('currentFrame').src = `data:image/jpeg;base64,${data.current_frame}`;
+                
+                // 更新渲染后图片
+                document.getElementById('labeledFrame').src = `data:image/jpeg;base64,${data.labeled_frame}`;
+            }
+            
+            // 如果任务完成或出错，更新UI
+            if (data.status === 'completed' || data.status === 'stopped' || data.status === 'error') {
+                // 计算结束时间和耗时
+                const endTime = new Date();
+                const duration = endTime - startTime;
+                
+                // 显示结果
+                let message = '';
+                let type = 'success';
+                
+                if (data.status === 'completed') {
+                    message = `视频标注完成！<br>
+                                开始时间: ${startTime.toLocaleString()}<br>
+                                结束时间: ${endTime.toLocaleString()}<br>
+                                总计耗时: ${(duration / 1000).toFixed(2)}秒<br>
+                                处理了 ${data.processed_count} 帧，检测到 ${data.total_detections} 个目标`;
+                    type = 'success';
+                } else if (data.status === 'stopped') {
+                    message = `视频标注已停止！<br>
+                                开始时间: ${startTime.toLocaleString()}<br>
+                                结束时间: ${endTime.toLocaleString()}<br>
+                                总计耗时: ${(duration / 1000).toFixed(2)}秒<br>
+                                已处理 ${data.processed_count} 帧，检测到 ${data.total_detections} 个目标`;
+                    type = 'info';
+                } else if (data.status === 'error') {
+                    message = `视频标注失败：${data.error}<br>
+                                开始时间: ${startTime.toLocaleString()}<br>
+                                结束时间: ${endTime.toLocaleString()}<br>
+                                总计耗时: ${(duration / 1000).toFixed(2)}秒<br>
+                                已处理 ${data.processed_count} 帧，检测到 ${data.total_detections} 个目标`;
+                    type = 'error';
+                }
+                
+                showMessage('videoResult', message, type);
+                
+                // 重置UI状态
+                resetVideoUI();
+            }
+        }
+
+        // 重置视频UI状态
+        function resetVideoUI() {
+            currentTaskId = null;
+            document.getElementById('startVideoBtn').style.display = 'inline-flex';
+            document.getElementById('stopVideoBtn').style.display = 'none';
+            document.getElementById('videoLoading').style.display = 'none';
+            document.getElementById('currentTaskId').style.display = 'none';
+            document.getElementById('videoProgress').style.display = 'none';
+            // 隐藏实时帧显示区域并清空图片源
+            document.getElementById('frameDisplay').style.display = 'none';
+            document.getElementById('currentFrame').src = '';
+            document.getElementById('labeledFrame').src = '';
+        }
+
+        // 处理视频标注
+        function handleVideoAnnotation() {
+            const videoFile = document.getElementById('videoFile').value;
+            const frameInterval = document.getElementById('frameInterval').value;
+            const outputDir = document.getElementById('videoOutputDir').value;
+            const config = getApiConfig();
+            
+            // 获取视频标签页特定的提示词，如果有则优先使用
+            const videoPrompt = document.getElementById('videoPrompt').value.trim();
+            const prompt = videoPrompt || config.prompt;
+            
+            // 创建包含特定提示词的API配置
+            const videoApiConfig = {
+                ...config,
+                prompt: prompt
+            };
+
+            if (!videoFile) {
+                showMessage('videoResult', '请输入视频文件路径或RTSP流地址', 'error');
+                return;
+            }
+
+            // 记录开始时间
+            startTime = new Date();
+
+            // 显示加载状态
+            document.getElementById('videoLoading').style.display = 'inline-flex';
+            document.getElementById('videoResult').style.display = 'none';
+
+            // 发送请求启动任务
+            fetch('/api/auto-label/video/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    video_path: videoFile,
+                    frame_interval: frameInterval,
+                    output_dir: outputDir,
+                    api_config: videoApiConfig
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 保存当前任务ID
+                    currentTaskId = data.task_id;
+                    
+                    // 更新UI状态
+                    document.getElementById('startVideoBtn').style.display = 'none';
+                    document.getElementById('stopVideoBtn').style.display = 'inline-flex';
+                    document.getElementById('taskIdValue').textContent = currentTaskId;
+                    document.getElementById('currentTaskId').style.display = 'block';
+                    
+                    // 显示进度区域
+                    document.getElementById('videoProgress').style.display = 'block';
+                } else {
+                    document.getElementById('videoLoading').style.display = 'none';
+                    showMessage('videoResult', `视频标注任务启动失败：${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('videoLoading').style.display = 'none';
+                showMessage('videoResult', `请求失败：${error.message}`, 'error');
+            });
+        }
+
+        // 处理停止视频标注
+        function handleStopVideoAnnotation() {
+            if (!currentTaskId) {
+                showMessage('videoResult', '没有正在运行的任务', 'error');
+                return;
+            }
+            
+            // 发送请求停止任务
+            fetch('/api/auto-label/video/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    task_id: currentTaskId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 不在这里显示消息，等待socketio的进度更新
+                } else {
+                    showMessage('videoResult', `停止视频标注任务失败：${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('videoResult', `请求失败：${error.message}`, 'error');
+            });
+        }
+
+        // 测试API
+        function testApi() {
+            const files = document.getElementById('testImage').files;
+            const config = getApiConfig();
+            
+            // 获取API测试标签页特定的提示词，如果有则优先使用
+            const apiTestPrompt = document.getElementById('apiTestPrompt').value.trim();
+            const prompt = apiTestPrompt || config.prompt;
+
+            if (files.length === 0) {
+                showMessage('apiTestResult', '请选择测试图片', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', files[0]);
+            formData.append('api_url', config.apiUrl);
+            formData.append('api_key', config.apiKey);
+            formData.append('timeout', config.timeout);
+            formData.append('prompt', prompt);
+            formData.append('model', config.model);
+            formData.append('inferenceTool', config.inferenceTool);
+
+            // 记录开始时间
+            const startTime = new Date();
+
+            // 显示加载状态
+            document.getElementById('apiTestLoading').style.display = 'inline-flex';
+            document.getElementById('apiTestResult').style.display = 'none';
+
+            // 发送请求
+            fetch('/api/auto-label/test', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 计算结束时间和耗时
+                const endTime = new Date();
+                const duration = endTime - startTime;
+
+                document.getElementById('apiTestLoading').style.display = 'none';
+                document.getElementById('apiTestResult').style.display = 'block';
+                
+                // 构建带有时间信息的结果
+                const resultWithTime = {
+                    success: data.success,
+                    startTime: startTime.toLocaleString(),
+                    endTime: endTime.toLocaleString(),
+                    duration: `${(duration / 1000).toFixed(2)}秒`,
+                    result: data.result || data.error || data
+                };
+                
+                document.getElementById('apiTestResult').innerHTML = JSON.stringify(resultWithTime, null, 2);
+            })
+            .catch(error => {
+                // 计算结束时间和耗时
+                const endTime = new Date();
+                const duration = endTime - startTime;
+
+                document.getElementById('apiTestLoading').style.display = 'none';
+                const message = `请求失败：${error.message}<br>
+                                开始时间: ${startTime.toLocaleString()}<br>
+                                结束时间: ${endTime.toLocaleString()}<br>
+                                总计耗时: ${(duration / 1000).toFixed(2)}秒`;
+                showMessage('apiTestResult', message, 'error');
+            });
+        }
+
+        // 图片放大功能
+        function initImageZoom() {
+            // 获取模态框元素
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            const closeBtn = document.getElementsByClassName('close')[0];
+            
+            // 为所有可点击图片添加点击事件
+            function addClickEvents() {
+                const clickableImages = document.querySelectorAll('.clickable-image');
+                clickableImages.forEach(img => {
+                    // 移除可能已存在的事件监听器，避免重复绑定
+                    img.removeEventListener('click', handleImageClick);
+                    img.addEventListener('click', handleImageClick);
+                });
+            }
+            
+            // 图片点击事件处理函数
+            function handleImageClick() {
+                modal.style.display = 'block';
+                modalImg.src = this.src;
+            }
+            
+            // 初始绑定事件
+            addClickEvents();
+            
+            // 点击关闭按钮关闭模态框
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+            
+            // 点击模态框背景关闭模态框
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // 按ESC键关闭模态框
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // 为动态添加的图片添加事件监听
+            // 监听DOM变化，当有新图片添加时重新绑定事件
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes.length > 0) {
+                        addClickEvents();
+                    }
+                });
+            });
+            
+            // 配置观察选项
+            const config = {
+                childList: true,
+                subtree: true
+            };
+            
+            // 开始观察文档
+            observer.observe(document.body, config);
+        }
+        
+        // 显示消息
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            // 使用innerHTML处理HTML格式的消息，支持换行等格式
+            element.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+        }
+    </script>
+    
+    <!-- 图片放大模态框 -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+</body>
+</html>

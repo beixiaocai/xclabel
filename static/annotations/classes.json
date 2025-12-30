@@ -1,6 +1,14 @@
 [
   {
-    "name": "\u4eba",
-    "color": "#d00b0b"
+    "color": "#d00b0b",
+    "name": "\u4eba"
+  },
+  {
+    "name": "unsleep",
+    "color": "#d92a02"
+  },
+  {
+    "name": "sleep",
+    "color": "#ad3f63"
   }
 ]

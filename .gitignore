@@ -2,8 +2,9 @@
 .idea/
 # vs
 .vs
-docs/*
-venv*
+plugins
+uploads
+venv
 __pycache__
 app/__pycache__
 static/storage

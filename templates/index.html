@@ -12,26 +12,24 @@
         <!-- 顶部导航栏 -->
         <header class="navbar">
             <div class="logo">
-                <h1 style="cursor: pointer;" onclick="window.location.href='/'">xclabel <span class="version">v2.0</span></h1>
+                <h1 style="cursor: pointer;" onclick="window.location.href='/'"><span class="x">x</span>clabel <span class="version">v2.3</span></h1>
             </div>
             <div class="nav-buttons">
                 <button id="openFolderBtn" class="btn btn-primary">
                     <i class="fas fa-upload"></i> 添加数据集
                 </button>
-                
-                <button id="exportBtn" class="btn btn-success">
-                    <i class="fas fa-download"></i> 导出数据集
-                </button>
-                <button id="trainBtn" class="btn btn-warning">
-                    <i class="fas fa-graduation-cap"></i> 训练
-                </button>
-                
-
-                <button id="clearAnnotationBtn" class="btn btn-danger">
+                                <button id="clearAnnotationBtn" class="btn btn-danger">
                     <i class="fas fa-trash"></i> 清除
                 </button>
                 <button id="saveAnnotationBtn" class="btn btn-success">
                     <i class="fas fa-save"></i> 保存
+                </button>
+
+                <button id="exportBtn" class="btn btn-success">
+                    <i class="fas fa-download"></i> 导出数据集
+                </button>
+                <button id="autoLabelBtn" class="btn btn-warning">
+                    <i class="fas fa-robot"></i> 自动标注
                 </button>
                 <button id="settingsBtn" class="btn btn-info">
                     <i class="fas fa-cog"></i> 设置
@@ -194,16 +192,15 @@
                         <label for="exportPrefix">导出文件前缀 (可选):</label>
                         <input type="text" id="exportPrefix" placeholder="输入文件前缀" style="width: 100%;">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                         <button type="submit" class="btn btn-success" id="exportSubmitBtn" style="width: auto; min-width: 100px; height: 36px;">
                             <i class="fas fa-download"></i> 导出
                         </button>
+                        <!-- 加载指示器 -->
+                        <div id="exportLoadingIndicator" class="loading-indicator" style="display: none; height: 36px; line-height: 36px; margin: 0; padding: 0 10px;">
+                            <i class="fas fa-spinner fa-spin"></i> 正在处理...
+                        </div>
                     </div>
-                </div>
-                
-                <!-- 加载指示器 -->
-                <div id="exportLoadingIndicator" class="loading-indicator" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i> 正在处理数据集导出，请稍候...
                 </div>
             </form>
         </div>
@@ -214,35 +211,138 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2><i class="fas fa-cog"></i> 设置</h2>
+            
+            <!-- 作者信息 -->
+            <div class="author-info">
+                <h3 style="margin: 0 0 10px 0; font-size: 1.1em; color: #555;"><i class="fas fa-user"></i> 关于项目</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <strong>作者:</strong> <a href="https://space.bilibili.com/487906612" target="_blank" style="color: #339af0; text-decoration: none;">北小菜</a>
+                    </div>
+                    <div class="form-group">
+                        <strong>版本:</strong> v2.3
+                    </div>
+                </div>
+                <div class="form-group">
+                    <strong>开源主页:</strong> <a href="https://github.com/beixiaocai/xclabel" target="_blank" style="color: #339af0; text-decoration: none;">GitHub - beixiaocai/xclabel</a>
+                </div>
+            </div>
+            
+            <!-- YOLO11安装 -->
+            <div class="yolo11-install-section">
+                <h3 style="margin: 0 0 15px 0; font-size: 1.1em; color: #555;"><i class="fas fa-robot"></i> YOLO11安装</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="yolo11InstallPath">安装路径:</label>
+                        <input type="text" id="yolo11InstallPath" placeholder="请输入YOLO11安装路径" value="plugins/yolo11">
+                        <small>默认安装在项目plugins目录下，使用隔离虚拟环境</small>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="button" class="btn btn-primary" id="installYolo11Btn">
+                        <i class="fas fa-download"></i> 安装YOLO11
+                    </button>
+                    <button type="button" class="btn btn-danger" id="uninstallYolo11Btn" disabled>
+                        <i class="fas fa-trash"></i> 卸载YOLO11
+                    </button>
+                    <button onclick="window.open('https://beixiaocai.yuque.com/org-wiki-beixiaocai-vo72oa/xclabel/bid4k1lwvva8lzn0', '_blank')" type="button" class="btn btn-info" id="gpuAccelerationBtn">
+                        <i class="fas fa-gpu"></i> 如何训练
+                    </button>
+                </div>
+                <div id="yolo11InstallInfo" style="margin-top: 10px; padding: 8px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; font-size: 0.9em; display: none;">
+                    <!-- 安装信息将通过JavaScript动态填充 -->
+                </div>
+                <div id="yolo11InstallStatus" style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; font-size: 0.9em; display: none;">
+                    <i class="fas fa-info-circle"></i> <span id="yolo11StatusText">安装状态</span>
+                </div>
+                <div id="yolo11InstallProgress" style="margin-top: 8px; display: none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span style="font-size: 0.85em; color: #666;">安装进度:</span>
+                        <span id="yolo11ProgressPercent">0%</span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background-color: #e9ecef; border-radius: 3px; overflow: hidden;">
+                        <div id="yolo11ProgressBar" style="width: 0%; height: 100%; background-color: #339af0; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+                
+                <!-- 预训练模型下载 -->
+                <div class="yolo11-models-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 1.1em; color: #555;"><i class="fas fa-download"></i> 预训练模型</h3>
+                    <div style="margin-bottom: 10px;">
+                        <label>选择要下载的YOLO11预训练模型:</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="yolo11Models" value="yolo11n" checked>
+                                YOLO11n (小型)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="yolo11Models" value="yolo11s" checked>
+                                YOLO11s (中型)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="yolo11Models" value="yolo11m" checked>
+                                YOLO11m (大型)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="yolo11Models" value="yolo11l" checked>
+                                YOLO11l (特大型)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" name="yolo11Models" value="yolo11x" checked>
+                                YOLO11x (超大型)
+                            </label>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; width: fit-content;">
+                        <button type="button" class="btn btn-primary icon-btn" id="downloadModelsBtn">
+                            <i class="fas fa-download"></i> <span class="btn-text">下载选中模型</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary icon-btn" id="refreshModelsBtn">
+                            <i class="fas fa-sync-alt"></i> <span class="btn-text">刷新模型列表</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 模型列表和拖放区域 -->
+                    <div id="modelsContainer" style="margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 1em; color: #666;">已安装模型:</h4>
+                        <div id="modelsList" style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; min-height: 50px; font-size: 0.9em;">
+                            <!-- 模型列表将动态生成 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 手动拖放区域 -->
+                    <div id="modelDropZone" style="border: 2px dashed #ced4da; border-radius: 4px; padding: 20px; text-align: center; background-color: #f8f9fa; margin-bottom: 15px;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 2em; color: #6c757d; margin-bottom: 10px;"></i>
+                        <p style="margin: 0 0 10px 0; color: #6c757d;">如果下载失败，您可以手动将模型文件拖放到此处</p>
+                        <p style="margin: 0; font-size: 0.85em; color: #6c757d;">或放置到以下目录:</p>
+                        <p style="margin: 5px 0 0 0; font-weight: bold; color: #495057;"><span id="modelsPath">plugins/yolo11/models</span></p>
+                    </div>
+                    
+                    <div id="modelDownloadStatus" style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; font-size: 0.9em; display: none;">
+                        <i class="fas fa-info-circle"></i> <span id="modelStatusText">模型下载状态</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 快捷键设置 -->
             <form id="settingsForm">
-                <div class="form-group">
-                    <label for="clearShortcut">清除标注快捷键:</label>
-                    <input type="text" id="clearShortcut" placeholder="请输入快捷键组合" value="Ctrl+Shift+D">
+                <h3 style="margin: 0 0 15px 0; font-size: 1.1em; color: #555;"><i class="fas fa-keyboard"></i> 快捷键设置</h3>
+                <div class="shortcut-section">
+                    <div class="form-group">
+                        <label for="clearShortcut">清除标注快捷键:</label>
+                        <input type="text" id="clearShortcut" placeholder="请输入快捷键组合" value="Ctrl+Shift+D">
+                    </div>
+                    <div class="form-group">
+                        <label for="saveShortcut">保存标注快捷键:</label>
+                        <input type="text" id="saveShortcut" placeholder="请输入快捷键组合" value="Ctrl+S">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="saveShortcut">保存标注快捷键:</label>
-                    <input type="text" id="saveShortcut" placeholder="请输入快捷键组合" value="Ctrl+S">
-                </div>
-                <div style="display: flex; justify-content: flex-start; margin-top: 20px;">
+                <div style="display: flex; justify-content: flex-start; margin-top: 15px;">
                     <button type="submit" class="btn btn-success" id="saveSettingsBtn">
                         <i class="fas fa-save"></i> 保存设置
                     </button>
                 </div>
             </form>
-            
-            <!-- 作者信息 -->
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                <h3 style="margin: 0 0 10px 0; font-size: 1.1em; color: #555;"><i class="fas fa-user"></i> 关于作者</h3>
-                <p style="margin: 5px 0; font-size: 0.9em; color: #666;">
-                    <strong>作者:</strong> <a href="https://space.bilibili.com/487906612" target="_blank" style="color: #339af0; text-decoration: none;">北小菜</a>
-                </p>
-                <p style="margin: 5px 0; font-size: 0.9em; color: #666;">
-                    <strong>项目主页:</strong> <a href="https://github.com/beixiaocai/xclabel" target="_blank" style="color: #339af0; text-decoration: none;">GitHub - beixiaocai/xclabel</a>
-                </p>
-                <p style="margin: 5px 0; font-size: 0.9em; color: #666;">
-                    <strong>版本:</strong> v2.0
-                </p>
-            </div>
         </div>
     </div>
 

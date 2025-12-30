@@ -1139,11 +1139,10 @@ body {
     flex: 1;
     font-size: 0.75em;
     font-weight: 500;
-    color: #ffffff;
+    color: #000000;
     white-space: normal;
     word-break: break-word;
     margin-right: 5px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     min-width: 0;
 }
@@ -1409,11 +1408,11 @@ body {
 
 /* 类别复选框样式 */
 .class-checkbox-container {
-    max-height: 150px; /* 减小最大高度 */
+    max-height: 120px; /* 减小最大高度 */
     overflow-y: auto;
     border: 1px solid #ced4da;
-    border-radius: 4px; /* 减小圆角 */
-    padding: 8px; /* 减小内边距 */
+    border-radius: 4px;
+    padding: 6px; /* 减小内边距 */
     background-color: #f8f9fa;
     display: flex;
     flex-wrap: wrap;
@@ -1421,11 +1420,23 @@ body {
 }
 
 .export-modal .class-checkbox-container {
-    max-height: 150px;
+    max-height: 120px;
     overflow-y: auto;
     border: 1px solid #ced4da;
     border-radius: 4px;
-    padding: 8px;
+    padding: 6px;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+    max-height: 100px;
+    overflow-y: auto;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 6px;
     background-color: #f8f9fa;
     display: flex;
     flex-direction: row;
@@ -1438,12 +1449,13 @@ body {
     align-items: center;
     font-weight: normal;
     cursor: pointer;
-    padding: 2px 6px; /* 减小内边距 */
-    border-radius: 8px; /* 减小圆角 */
+    padding: 2px 6px;
+    border-radius: 6px;
     transition: background-color 0.2s;
     background-color: #e9ecef;
-    font-size: 0.8em; /* 调小字体 */
+    font-size: 0.8em;
     margin: 0;
+    color: #000000;
 }
 
 .export-modal .class-checkbox-label {
@@ -1451,12 +1463,26 @@ body {
     align-items: center;
     font-weight: normal;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 2px 6px;
+    border-radius: 6px;
     transition: background-color 0.2s;
     background-color: #f0f0f0;
-    font-size: 0.85em;
+    font-size: 0.8em;
     margin: 0;
+    color: #000000;
+}
+
+    display: inline-flex;
+    align-items: center;
+    font-weight: normal;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    background-color: #f0f0f0;
+    font-size: 0.8em;
+    margin: 0;
+    color: #000000;
 }
 
 .class-checkbox-label:hover {
@@ -1499,7 +1525,7 @@ body {
 .export-modal .export-modal-content {
     max-width: 600px;
     max-height: 70vh;
-    padding: 15px;
+    padding: 20px;
     margin: 3% auto;
 }
 
@@ -1639,22 +1665,2756 @@ body {
 
 /* 设置模态框特定样式 */
 .settings-modal .modal-content {
-    max-width: 600px;
-    padding: 25px;
+    max-width: 900px;
+    max-height: 80vh;
+    padding: 30px;
+    margin: 3% auto;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    background-color: white;
+    overflow-y: auto;
 }
 
+/* 设置模态框标题样式 */
+.settings-modal h2 {
+    margin: 0 0 30px 0;
+    font-size: 1.3em;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-modal h2 i {
+    color: #339af0;
+    font-size: 0.9em;
+}
+
+/* 设置模态框子标题样式 */
+.settings-modal h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.1em;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-modal h3 i {
+    color: #339af0;
+    font-size: 0.9em;
+}
+
+/* 作者信息部分样式 */
+.settings-modal .author-info {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.settings-modal .author-info .form-row {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.settings-modal .author-info .form-group {
+    margin-bottom: 10px;
+}
+
+.settings-modal .author-info a {
+    color: #339af0;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.settings-modal .author-info a:hover {
+    color: #258cd1;
+    text-decoration: underline;
+}
+
+/* YOLO11安装部分样式 */
+.settings-modal .yolo11-install-section {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.settings-modal .yolo11-install-section .form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.settings-modal .yolo11-install-section .form-group {
+    margin-bottom: 0;
+}
+
+/* 安装路径行样式 - 标签和输入框同一行 */
+.settings-modal .yolo11-install-section .form-row > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-start;
+}
+
+/* 直接将form-group设置为flex容器，使用row方向让所有元素在同一行 */
+.settings-modal .yolo11-install-section .form-row .form-group {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+    flex-wrap: nowrap !important;
+}
+
+/* 简化标签样式，去掉显示框，降低字体大小 */
+.settings-modal .yolo11-install-section .form-row label {
+    display: inline-block !important;
+    margin-bottom: 0 !important;
+    font-weight: 500 !important;
+    color: #333 !important;
+    font-size: 0.8em !important;
+    min-width: auto !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    margin-right: 0 !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
+}
+
+.settings-modal .yolo11-install-section .form-row input[type="text"] {
+    flex: 0 !important;
+    width: 300px !important;
+    min-width: auto !important;
+    padding: 8px 12px !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    transition: all 0.2s ease !important;
+    background-color: white !important;
+    height: 36px !important;
+    vertical-align: middle !important;
+}
+
+/* 安装路径提示文字样式 - 紧跟在输入框后面 */
+.settings-modal .yolo11-install-section .form-row small {
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    font-size: 0.75em !important;
+    color: #666 !important;
+    display: inline-block !important;
+    width: auto !important;
+    max-width: none !important;
+    flex-basis: auto !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
+    flex: 1 !important;
+    margin-bottom: 0 !important;
+}
+
+/* 确保没有其他CSS影响标签样式 */
+.settings-modal .yolo11-install-section label {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+/* 其他标签样式 - 不影响安装路径标签 */
+.settings-modal .yolo11-install-section .yolo11-models-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+    font-size: 0.9em;
+}
+
+/* 其他输入框样式 - 不影响安装路径输入框 */
+.settings-modal .yolo11-install-section .yolo11-models-section input[type="text"] {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.95em;
+    transition: all 0.2s ease;
+    background-color: white;
+    height: 40px;
+}
+
+.settings-modal .yolo11-install-section .yolo11-models-section input[type="text"]:focus {
+    outline: none;
+    border-color: #339af0;
+    box-shadow: 0 0 0 2px rgba(51, 154, 240, 0.1);
+}
+
+/* 复选框样式 */
+.settings-modal .yolo11-install-section .form-group > label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+    cursor: pointer;
+    padding: 12px 16px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+}
+
+.settings-modal .yolo11-install-section .form-group > label:hover {
+    background-color: #e9ecef;
+    border-color: #339af0;
+}
+
+.settings-modal .yolo11-install-section input[type="checkbox"] {
+    accent-color: #339af0;
+    transform: scale(1.1);
+}
+
+.settings-modal .yolo11-install-section small {
+    display: block;
+    margin-top: 8px;
+    color: #666;
+    font-size: 0.85em;
+    line-height: 1.5;
+}
+
+/* 安装按钮样式 */
+.settings-modal .yolo11-install-section > div:last-of-type {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.settings-modal .yolo11-install-section .btn {
+    padding: 6px 15px;
+    font-size: 0.85em;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    min-width: 100px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* 统一按钮色调 - 主要使用蓝色主题 */
+.settings-modal .btn-primary {
+    background-color: #339af0;
+    border: 1px solid #339af0;
+    color: white;
+}
+
+.settings-modal .btn-primary:hover {
+    background-color: #258cd1;
+    border-color: #258cd1;
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3);
+}
+
+.settings-modal .btn-danger {
+    background-color: #6c757d;
+    border: 1px solid #6c757d;
+    color: white;
+}
+
+.settings-modal .btn-danger:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.settings-modal .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* 安装状态样式 */
+.settings-modal #yolo11InstallStatus {
+    margin-top: 15px;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-modal #yolo11InstallStatus i {
+    font-size: 1.1em;
+}
+
+/* 安装进度样式 */
+.settings-modal #yolo11InstallProgress {
+    margin-top: 10px;
+    display: none;
+}
+
+.settings-modal #yolo11InstallProgress > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 预训练模型部分样式 */
+.settings-modal .yolo11-models-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.settings-modal .yolo11-models-section h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    color: #555;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-modal .yolo11-models-section h3 i {
+    color: #339af0;
+}
+
+.settings-modal .yolo11-models-section > div:first-of-type {
+    margin-bottom: 15px;
+}
+
+.settings-modal .yolo11-models-section label {
+    margin-right: 15px;
+    font-size: 0.95em;
+    color: #555;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.settings-modal .yolo11-models-section label:hover {
+    color: #339af0;
+}
+
+.settings-modal .yolo11-models-section input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    accent-color: #339af0;
+    transform: scale(1.1);
+}
+
+.settings-modal .yolo11-models-section .btn {
+    margin-right: 10px;
+    margin-bottom: 15px;
+    padding: 8px;
+    font-size: 0.9em;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    min-width: 36px;
+    width: 36px;
+    height: 36px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    flex-grow: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 图标按钮样式 */
+.settings-modal .yolo11-models-section .icon-btn {
+    transition: all 0.3s ease;
+}
+
+.settings-modal .yolo11-models-section .icon-btn .btn-text {
+    opacity: 0;
+    visibility: hidden;
+    font-size: 0.85em;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    margin-left: 0;
+    position: absolute;
+    left: 100%;
+    margin-left: 8px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.settings-modal .yolo11-models-section .icon-btn:hover {
+    width: auto;
+    padding: 8px 12px;
+}
+
+.settings-modal .yolo11-models-section .icon-btn:hover .btn-text {
+    opacity: 1;
+    visibility: visible;
+    margin-left: 8px;
+}
+
+/* 调整按钮间距 */
+.settings-modal .yolo11-models-section > div:nth-of-type(2) {
+    margin-bottom: 15px;
+}
+
+.settings-modal .yolo11-models-section .btn-primary {
+    background-color: #339af0;
+    border: 1px solid #339af0;
+    color: white;
+}
+
+.settings-modal .yolo11-models-section .btn-primary:hover {
+    background-color: #258cd1;
+    border-color: #258cd1;
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3);
+    transform: translateY(-1px);
+}
+
+.settings-modal .yolo11-models-section .btn-secondary {
+    background-color: #6c757d;
+    border: 1px solid #6c757d;
+    color: white;
+}
+
+.settings-modal .yolo11-models-section .btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    transform: translateY(-1px);
+}
+
+.settings-modal #modelsContainer {
+    margin-bottom: 15px;
+}
+
+.settings-modal #modelsContainer h4 {
+    margin: 0 0 10px 0;
+    font-size: 1em;
+    color: #666;
+    font-weight: 600;
+}
+
+.settings-modal #modelsList {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    min-height: 60px;
+    font-size: 0.9em;
+    border: 1px solid #e9ecef;
+}
+
+.settings-modal #modelsList .model-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    min-height: 32px;
+    height: auto;
+}
+
+.settings-modal #modelsList .model-item:hover {
+    background-color: #f8f9fa;
+}
+
+.settings-modal #modelsList .model-item:last-child {
+    border-bottom: none;
+}
+
+/* 删除模型按钮样式 */
+.settings-modal #modelsList .delete-model-btn {
+    background-color: transparent;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 0.75em;
+    padding: 3px 6px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+}
+
+.settings-modal #modelsList .delete-model-btn:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: scale(1.1);
+}
+
+.settings-modal #modelsList .delete-model-btn i {
+    margin: 0;
+    font-size: 0.75em;
+}
+
+.settings-modal #modelsList .model-name {
+    font-size: 0.9em;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.settings-modal #modelsList .model-size {
+    font-size: 0.75em;
+    color: #6c757d;
+    font-family: monospace;
+    white-space: nowrap;
+    margin-right: 8px;
+    margin-left: 10px;
+}
+
+.settings-modal #modelsList .model-item > div {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.settings-modal #modelsList i {
+    color: #28a745;
+    margin-right: 8px;
+}
+
+.settings-modal #modelDropZone {
+    border: 2px dashed #ced4da;
+    border-radius: 6px;
+    padding: 25px;
+    text-align: center;
+    background-color: #f8f9fa;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.settings-modal #modelDropZone:hover {
+    border-color: #339af0;
+    background-color: #e3f2fd;
+}
+
+.settings-modal #modelDropZone i {
+    font-size: 2em;
+    color: #6c757d;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.settings-modal #modelDropZone p {
+    margin: 0 0 10px 0;
+    color: #6c757d;
+    font-size: 0.95em;
+}
+
+.settings-modal #modelDropZone p:last-child {
+    margin: 5px 0 0 0;
+    font-weight: bold;
+    color: #495057;
+    font-size: 0.9em;
+}
+
+.settings-modal #modelDownloadStatus {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    font-size: 0.9em;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.settings-modal #modelDownloadStatus i {
+    font-size: 1.1em;
+    color: #6c757d;
+}
+
+.settings-modal #modelDownloadStatus.success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.settings-modal #modelDownloadStatus.success i {
+    color: #155724;
+}
+
+.settings-modal #modelDownloadStatus.error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.settings-modal #modelDownloadStatus.error i {
+    color: #721c24;
+}
+
+.settings-modal #modelDownloadStatus.info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.settings-modal #modelDownloadStatus.info i {
+    color: #0c5460;
+}
+
+.settings-modal #modelsPath {
+    font-family: monospace;
+    background-color: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    color: #495057;
+}
+
+.settings-modal #yolo11ProgressBar {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #339af0;
+    transition: width 0.3s ease;
+}
+
+/* 快捷键设置部分样式 */
+.settings-modal #settingsForm {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.settings-modal .shortcut-section {
+    margin-bottom: 25px;
+}
+
+.settings-modal .shortcut-section .form-group {
+    margin-bottom: 20px;
+}
+
+.settings-modal .shortcut-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+    font-size: 0.9em;
+}
+
+.settings-modal .shortcut-section input[type="text"] {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.95em;
+    transition: all 0.2s ease;
+    background-color: white;
+    height: 40px;
+}
+
+.settings-modal .shortcut-section input[type="text"]:focus {
+    outline: none;
+    border-color: #339af0;
+    box-shadow: 0 0 0 2px rgba(51, 154, 240, 0.1);
+}
+
+/* 保存设置按钮样式 */
+.settings-modal #saveSettingsBtn {
+    padding: 10px 30px;
+    font-size: 1em;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background-color: #339af0;
+    border: 1px solid #339af0;
+    color: white;
+    min-width: 140px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.settings-modal #saveSettingsBtn:hover {
+    background-color: #258cd1;
+    border-color: #258cd1;
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3);
+}
+
+/* 设置模态框各部分间距 */
+.settings-modal .author-info,
+.settings-modal .yolo11-install-section,
+.settings-modal #settingsForm {
+    margin-bottom: 30px;
+}
+
+/* 移除最后一个部分的底部间距 */
+.settings-modal .author-info:last-child,
+.settings-modal .yolo11-install-section:last-child,
+.settings-modal #settingsForm:last-child {
+    margin-bottom: 0;
+}
+
+/* 移除之前的刷新按钮样式，因为按钮现在使用默认样式 */
+
+/* 训练模态框全新样式设计 - 覆盖现有样式 */
+    max-width: 800px !important;
+    max-height: 90vh !important;
+    padding: 24px !important;
+    margin: 3% auto !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    background-color: #ffffff !important;
+    overflow-y: auto !important;
+    border: 1px solid #e9ecef !important;
+}
+
+    float: right !important;
+    margin-top: -8px !important;
+    margin-right: -8px !important;
+    font-size: 24px !important;
+    font-weight: 600 !important;
+    color: #6c757d !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef !important;
+}
+
+    color: #495057 !important;
+    background-color: #e9ecef !important;
+    transform: rotate(90deg) !important;
+}
+
+    margin: 0 0 20px 0 !important;
+    font-size: 1.3em !important;
+    color: #2c3e50 !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 2px solid #339af0 !important;
+}
+
+    color: #339af0 !important;
+    font-size: 1em !important;
+}
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+    padding: 12px !important;
+    background-color: #f8f9fa !important;
+    border-radius: 8px !important;
+    border-left: 4px solid #339af0 !important;
+}
+
+    margin-bottom: 16px !important;
+}
+
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    gap: 20px !important;
+    margin-bottom: 16px !important;
+    align-items: start !important;
+}
+
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    gap: 20px !important;
+    margin-bottom: 16px !important;
+    align-items: start !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+}
+
+    display: block !important;
+    margin-bottom: 6px !important;
+    font-weight: 600 !important;
+    color: #495057 !important;
+    font-size: 0.9em !important;
+    line-height: 1.4 !important;
+}
+
+    width: 100% !important;
+    padding: 10px 12px !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 6px !important;
+    font-size: 0.95em !important;
+    transition: all 0.2s ease !important;
+    background-color: #ffffff !important;
+    height: auto !important;
+    min-height: 40px !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    font-family: inherit !important;
+}
+
+    outline: none !important;
+    border-color: #339af0 !important;
+    box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.1) !important;
+    background-color: #ffffff !important;
+}
+
+    margin: 0 0 12px 0 !important;
+    font-size: 1em !important;
+    color: #2c3e50 !important;
+    font-weight: 600 !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #e9ecef !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+    color: #339af0 !important;
+    font-size: 0.9em !important;
+}
+
+    margin-bottom: 12px !important;
+}
+
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+    margin-top: 8px !important;
+    padding: 12px !important;
+    border: 1px solid #e9ecef !important;
+    border-radius: 8px !important;
+    background-color: #f8f9fa !important;
+    transition: all 0.2s ease !important;
+}
+
+    border-color: #339af0 !important;
+    box-shadow: 0 2px 8px rgba(51, 154, 240, 0.1) !important;
+}
+
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    background-color: #ffffff !important;
+    user-select: none !important;
+    font-size: 0.9em !important;
+    color: #495057 !important;
+    margin-bottom: 0 !important;
+    border: 1px solid #dee2e6 !important;
+    font-weight: 500 !important;
+}
+
+    background-color: #e3f2fd !important;
+    border-color: #339af0 !important;
+    color: #258cd1 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(51, 154, 240, 0.15) !important;
+}
+
+    background-color: #339af0 !important;
+    border-color: #339af0 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(51, 154, 240, 0.2) !important;
+}
+
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #6c757d !important;
+}
+
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #6c757d !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+    max-height: 120px !important;
+    overflow-y: auto !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    background-color: #f8f9fa !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+    border-color: #339af0 !important;
+    box-shadow: 0 2px 8px rgba(51, 154, 240, 0.1) !important;
+}
+
+    padding: 6px 12px !important;
+    border-radius: 20px !important;
+    font-size: 0.85em !important;
+    font-weight: 500 !important;
+    background-color: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+    color: #495057 !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+    background-color: #e3f2fd !important;
+    border-color: #339af0 !important;
+    color: #258cd1 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 6px rgba(51, 154, 240, 0.15) !important;
+}
+
+    margin-right: 6px !important;
+    accent-color: #339af0 !important;
+    transform: scale(1.1) !important;
+}
+
+    margin-bottom: 20px !important;
+}
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+    cursor: pointer !important;
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    background-color: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+    color: #495057 !important;
+}
+
+    background-color: #e3f2fd !important;
+    border-color: #339af0 !important;
+    color: #258cd1 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(51, 154, 240, 0.15) !important;
+}
+
+    font-size: 0.9em !important;
+    color: #495057 !important;
+    user-select: none !important;
+    font-weight: 500 !important;
+}
+
+    margin: 0 0 12px 0 !important;
+    font-size: 1em !important;
+    color: #2c3e50 !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #e9ecef !important;
+}
+
+    color: #339af0 !important;
+    font-size: 0.9em !important;
+}
+
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    margin-top: 24px !important;
+    padding-top: 20px !important;
+    border-top: 2px solid #f0f0f0 !important;
+}
+
+    padding: 10px 24px !important;
+    font-size: 0.95em !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    transition: all 0.3s ease !important;
+    border: none !important;
+    cursor: pointer !important;
+    background-color: #339af0 !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(51, 154, 240, 0.2) !important;
+    min-width: 100px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3) !important;
+    background-color: #258cd1 !important;
+}
+
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 6px rgba(51, 154, 240, 0.2) !important;
+}
+
+    background-color: #6c757d !important;
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.2) !important;
+}
+
+    background-color: #5a6268 !important;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3) !important;
+}
+
+    background-color: #dc3545 !important;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2) !important;
+}
+
+    background-color: #c82333 !important;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
+}
+
+    display: block !important;
+    margin-top: 6px !important;
+    color: #6c757d !important;
+    font-size: 0.85em !important;
+    line-height: 1.4 !important;
+    font-style: italic !important;
+}
+
+/* 优化滚动条样式 */
+    width: 8px !important;
+}
+
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+}
+
+    background: #c1c1c1 !important;
+    border-radius: 4px !important;
+}
+
+    background: #a8a8a8 !important;
+}
+
+/* 优化刷新按钮位置 */
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
+    padding-top: 18px !important;
+}
+
+/* 优化刷新按钮样式 */
+    margin-top: 0 !important;
+    align-self: start !important;
+}
+
+/* 训练模态框特定样式 - 更简洁紧凑 */
+    max-width: 800px;
+    max-height: 90vh; /* 增加高度，确保所有组件都能显示 */
+    padding: 40px;
+    margin: 3% auto;
+}
+
+/* 数据集记录容器样式 */
+.dataset-records-container {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* 数据集记录项样式 */
+.dataset-record {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.dataset-record:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: #339af0;
+}
+
+/* 数据集记录选中状态样式 */
+.dataset-record.selected {
+    border-color: #339af0;
+    box-shadow: 0 0 0 2px rgba(51, 154, 240, 0.2);
+    background-color: #f0f8ff;
+}
+
+.dataset-record.selected:hover {
+    border-color: #228be6;
+    box-shadow: 0 2px 12px rgba(51, 154, 240, 0.3);
+}
+
+.dataset-record:last-child {
+    margin-bottom: 0;
+}
+
+.dataset-info {
+    flex: 1;
+}
+
+.dataset-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+}
+
+.dataset-meta {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.dataset-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.dataset-actions button {
+    padding: 5px 10px;
+    font-size: 0.85em;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dataset-actions .btn-select {
+    background-color: #339af0;
+    color: white;
+    border: none;
+}
+
+.dataset-actions .btn-select:hover {
+    background-color: #228be6;
+}
+
+.dataset-actions .btn-delete {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+.dataset-actions .btn-delete:hover {
+    background-color: #c82333;
+}
+
+/* 无数据集提示样式 */
+.no-datasets {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+}
+
+/* 上传状态样式 */
+#uploadStatus.success {
+    color: #28a745;
+}
+
+#uploadStatus.error {
+    color: #dc3545;
+}
+
+/* 训练模态框全新样式设计 - 简洁专业风格 */
+    max-width: 700px !important;
+    max-height: 90vh !important;
+    padding: 20px !important;
+    margin: 5% auto !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    background-color: #ffffff !important;
+    overflow-y: auto !important;
+    border: none !important;
+    position: relative !important;
+}
+
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    color: #999 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    background-color: transparent !important;
+    border: none !important;
+    z-index: 10 !important;
+}
+
+    color: #333 !important;
+    background-color: #f5f5f5 !important;
+    transform: none !important;
+}
+
+    margin: 0 0 15px 0 !important;
+    font-size: 1.2em !important;
+    color: #333 !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid #eaeaea !important;
+}
+
+    color: #339af0 !important;
+    font-size: 1em !important;
+}
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 15px !important;
+    padding: 10px !important;
+    background-color: #f8f9fa !important;
+    border-radius: 6px !important;
+    border-left: 3px solid #339af0 !important;
+}
+
+    margin-bottom: 12px !important;
+}
+
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 15px !important;
+    margin-bottom: 12px !important;
+    align-items: start !important;
+}
+
+/* 算法框架和预训练模型行 */
+    grid-template-columns: 1fr 1fr auto !important;
+    gap: 10px !important;
+    align-items: start !important;
+}
+
+/* 训练设备和分辨率行 */
+    grid-template-columns: 1fr 1fr !important;
+    gap: 15px !important;
+}
+
+/* 训练周期、批次和保存周期行 */
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 10px !important;
+}
+
+    display: block !important;
+    margin-bottom: 4px !important;
+    font-weight: 500 !important;
+    color: #555 !important;
+    font-size: 0.85em !important;
+    line-height: 1.3 !important;
+}
+
+    width: 100% !important;
+    padding: 8px 10px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    transition: all 0.2s ease !important;
+    background-color: #ffffff !important;
+    height: auto !important;
+    min-height: 34px !important;
+    box-shadow: none !important;
+    font-family: inherit !important;
+}
+
+    outline: none !important;
+    border-color: #339af0 !important;
+    box-shadow: 0 0 0 2px rgba(51, 154, 240, 0.15) !important;
+    background-color: #ffffff !important;
+}
+
+/* 数据集配置标题 */
+    margin: 15px 0 10px 0 !important;
+    font-size: 1em !important;
+    color: #333 !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #eaeaea !important;
+}
+
+    color: #339af0 !important;
+    font-size: 0.9em !important;
+}
+
+/* 样本选择和数据格式选择 */
+    display: flex !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    margin-top: 6px !important;
+    padding: 8px !important;
+    border: 1px solid #eaeaea !important;
+    border-radius: 4px !important;
+    background-color: #fafafa !important;
+    transition: all 0.2s ease !important;
+}
+
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    padding: 6px 10px !important;
+    border-radius: 3px !important;
+    transition: all 0.2s ease !important;
+    background-color: #ffffff !important;
+    user-select: none !important;
+    font-size: 0.85em !important;
+    color: #555 !important;
+    margin-bottom: 0 !important;
+    border: 1px solid #eaeaea !important;
+    font-weight: 500 !important;
+}
+
+    background-color: #f0f8ff !important;
+    border-color: #339af0 !important;
+    color: #339af0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+    background-color: #339af0 !important;
+    border-color: #339af0 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    background-color: #f5f5f5 !important;
+    border-color: #eaeaea !important;
+    color: #999 !important;
+}
+
+    background-color: #f5f5f5 !important;
+    border-color: #eaeaea !important;
+    color: #999 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 类别选择容器 */
+    max-height: 80px !important;
+    overflow-y: auto !important;
+    border: 1px solid #eaeaea !important;
+    border-radius: 4px !important;
+    padding: 8px !important;
+    background-color: #fafafa !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    transition: all 0.2s ease !important;
+}
+
+    padding: 4px 8px !important;
+    border-radius: 12px !important;
+    font-size: 0.8em !important;
+    font-weight: 500 !important;
+    background-color: #ffffff !important;
+    border: 1px solid #eaeaea !important;
+    color: #555 !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+    background-color: #f0f8ff !important;
+    border-color: #339af0 !important;
+    color: #339af0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+    margin-right: 4px !important;
+    accent-color: #339af0 !important;
+    transform: scale(0.9) !important;
+}
+
+/* 数据集比例行 */
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+}
+
+/* 数据集比例内部的form-group */
+    margin-bottom: 0 !important;
+    width: 100% !important;
+}
+
+/* 数据集比例输入框 */
+    width: 100% !important;
+    max-width: 100px !important;
+}
+
+/* 数据集前缀 */
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+}
+
+    margin-bottom: 15px !important;
+}
+
+/* 表单操作按钮 */
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    margin-top: 15px !important;
+    padding-top: 15px !important;
+    border-top: 1px solid #eaeaea !important;
+}
+
+    padding: 8px 16px !important;
+    font-size: 0.9em !important;
+    font-weight: 500 !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+    cursor: pointer !important;
+    background-color: #339af0 !important;
+    color: white !important;
+    box-shadow: none !important;
+    min-width: 90px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+    background-color: #258cd1 !important;
+    transform: none !important;
+    box-shadow: 0 2px 6px rgba(51, 154, 240, 0.2) !important;
+}
+
+    background-color: #1e70bf !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+    background-color: #6c757d !important;
+    color: white !important;
+}
+
+    background-color: #5a6268 !important;
+    box-shadow: 0 2px 6px rgba(108, 117, 125, 0.2) !important;
+}
+
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+    background-color: #c82333 !important;
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* 小提示文字 */
+    display: block !important;
+    margin-top: 4px !important;
+    color: #999 !important;
+    font-size: 0.75em !important;
+    line-height: 1.3 !important;
+    font-style: normal !important;
+}
+
+/* 刷新按钮样式 */
+    margin-top: 0 !important;
+    align-self: start !important;
+    padding: 8px 12px !important;
+    font-size: 0.85em !important;
+    height: 34px !important;
+    min-width: auto !important;
+    background-color: #f5f5f5 !important;
+    color: #555 !important;
+    border: 1px solid #ddd !important;
+}
+
+    background-color: #eaeaea !important;
+    border-color: #ccc !important;
+    color: #333 !important;
+    box-shadow: none !important;
+}
+
+/* 刷新按钮容器 */
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
+    padding-top: 19px !important;
+}
+
+/* 训练状态样式 */
+    font-size: 0.85em !important;
+    font-weight: 500 !important;
+    padding: 4px 8px !important;
+    border-radius: 3px !important;
+}
+
+    background-color: #f0f8ff !important;
+    color: #339af0 !important;
+}
+
+/* 查看详情按钮 */
+#viewTrainDetailBtn {
+    font-size: 0.85em !important;
+    padding: 6px 12px !important;
+    height: 30px !important;
+}
+
+/* 优化滚动条样式 */
+    width: 6px !important;
+}
+
+    background: #f5f5f5 !important;
+    border-radius: 3px !important;
+}
+
+    background: #ccc !important;
+    border-radius: 3px !important;
+}
+
+    background: #999 !important;
+}
+
+/* 加载动画 */
+    margin: 15px 0 !important;
+}
+
+    width: 20px !important;
+    height: 20px !important;
+    border-width: 2px !important;
+}
+
+/* 确保表单元素间距一致 */
+    margin-bottom: 10px !important;
+}
+
+/* 确保所有输入框宽度一致 */
+    width: 100% !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+        max-width: 95vw !important;
+        padding: 15px !important;
+        margin: 10% auto !important;
+    }
+    
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    
+        padding-top: 0 !important;
+        justify-content: flex-start !important;
+    }
+    
+    /* 数据集比例在响应式设计中也保持一行三列 */
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 10px !important;
+    }
+}
+
+/* 训练模态框头部样式 */
+    float: right;
+    margin-top: -10px;
+    margin-right: -10px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+}
+
+    color: black;
+}
+
+/* 训练模态框内容样式 */
+    margin-top: 0;
+    margin-right: 30px; /* 为关闭按钮留出空间 */
+}
+
+/* 训练模态框标题样式 */
+    margin: 0 0 8px 0;
+    font-size: 1.2em;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+    color: #339af0;
+    font-size: 0.9em;
+}
+
+/* 训练状态头部样式 */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* 训练模态框表单样式 */
+    margin-bottom: 4px;
+}
+
+/* 修复训练算法框架和预训练模型所在行的布局，使用flex布局 */
+    display: flex;
+    gap: 15px;
+    margin-bottom: 4px;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+}
+
+/* 其他form-row继续使用grid布局，调整列宽 */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    margin-bottom: 4px;
+}
+
+/* 确保数据集比例部分显示为一行三列 */
+    display: grid !important;
+    grid-template-columns: auto auto auto !important;
+    gap: 0 !important;
+    margin-bottom: 4px !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+}
+
+/* 数据集比例内部的form-group */
+    margin-bottom: 0 !important;
+    width: auto !important;
+    padding: 0 !important;
+    margin: 0 5px 0 0 !important;
+    min-width: 80px !important;
+}
+
+/* 数据集比例输入框 */
+    width: 140px !important;
+    max-width: 140px !important;
+    padding: 3px 5px !important;
+    font-size: 0.7em !important;
+}
+
+/* 数据集比例标签 */
+    margin-bottom: 1px !important;
+    font-size: 0.7em !important;
+    display: block !important;
+    width: auto !important;
+}
+
+    display: block;
+    margin-bottom: 1px;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.75em;
+}
+
+/* 移除之前的样式，因为刷新按钮已经不在label中了 */
+
+/* 表单控件样式 */
+    width: 200px;
+    padding: 6px 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    font-size: 0.75em;
+    transition: all 0.2s ease;
+    background-color: white;
+    height: auto;
+    min-height: 26px;
+    line-height: 1.4;
+}
+
+/* 确保选择框选项文字完整显示 */
+    height: auto;
+    padding: 6px 8px;
+}
+
+/* 确保选择框下拉选项完整显示 */
+    padding: 8px 12px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    overflow: visible;
+    line-height: 1.5;
+    height: auto;
+    min-height: 30px;
+}
+
+/* 确保选择框本身高度自适应，不截断内容 */
+    height: auto !important;
+    min-height: 26px !important;
+    padding: 8px 12px !important;
+    line-height: 1.4 !important;
+    display: block !important;
+}
+
+/* 确保选择框在所有状态下都能完整显示内容 */
+    height: auto !important;
+    min-height: 26px !important;
+}
+
+/* 训练模态框数据集配置模块样式 */
+    margin: 4px 0 2px 0;
+    font-size: 0.85em;
+    color: #333;
+    font-weight: 600;
+}
+
+/* 训练模态框数据集配置内部的form-group */
+    margin-bottom: 3px;
+}
+
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+    padding: 4px;
+    border: 1px solid #e1e1e1;
+    border-radius: 3px;
+    background-color: #fafafa;
+}
+
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+    padding: 4px;
+    border: 1px solid #e1e1e1;
+    border-radius: 3px;
+    background-color: #fafafa;
+}
+
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    background-color: #f0f0f0;
+    user-select: none;
+    font-size: 0.75em;
+    color: #333;
+    margin-bottom: 0;
+}
+
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    background-color: #f0f0f0;
+    user-select: none;
+    font-size: 0.75em;
+    color: #333;
+    margin-bottom: 0;
+}
+
+/* 训练模态框标题和状态部分 */
+    margin: 0 0 4px 0;
+    font-size: 1.1em;
+    color: #333;
+    font-weight: 600;
+}
+
+/* 训练状态头部 */
+    margin-bottom: 4px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* 类别选择容器 */
+    max-height: 80px;
+    overflow-y: auto;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    padding: 4px;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+/* 类别选择标签 */
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: 0.75em;
+}
+
+/* 数据集前缀输入框 */
+    margin-bottom: 0;
+}
+
+/* 训练模态框表单内容 */
+    margin-bottom: 6px;
+}
+
+/* 移除重复的样式定义，保留上面的padding: 40px */
+
+/* 训练模态框中禁用的选项样式 */
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+    background-color: #f0f0f0;
+}
+
+    background-color: #f0f0f0;
+}
+
+    cursor: not-allowed;
+    position: relative;
+}
+
+    cursor: not-allowed;
+    position: relative;
+}
+
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+}
+
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+}
+
+    outline: none;
+    border-color: #339af0;
+    box-shadow: 0 0 0 2px rgba(51, 154, 240, 0.1);
+}
+
+/* 复选框样式 */
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+}
+
+    background-color: #e9ecef;
+    border-color: #339af0;
+}
+
+    font-size: 0.85em;
+    color: #333;
+    user-select: none;
+}
+
+/* 数据集比例部分样式 */
+    margin: 0 0 6px 0;
+    font-size: 0.9em;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* 表单按钮样式 */
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+
+    padding: 8px 16px;
+    font-size: 0.9em;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    background-color: white;
+    color: #555;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    min-width: 90px;
+}
+
+    background-color: #339af0;
+    border-color: #339af0;
+    color: white;
+}
+
+    background-color: #258cd1;
+    border-color: #258cd1;
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3);
+}
+
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+    background-color: #c82333;
+    border-color: #bd2130;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* 添加训练模态框特定样式 - 更美观 */
+    max-width: 500px;
+    max-height: 70vh;
+    padding: 20px;
+    margin: 5% auto;
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* 添加训练模态框表单样式 */
+    margin-bottom: 15px;
+}
+
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.85em;
+}
+
+    margin-right: 6px;
+    accent-color: #339af0;
+    transform: scale(0.9);
+}
+
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+    background-color: white;
+    height: 32px;
+}
+
+    outline: none;
+    border-color: #339af0;
+    box-shadow: 0 0 0 2px rgba(51, 154, 240, 0.1);
+}
+
+/* 数据集比例样式优化 */
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+    margin: 0 0 8px 0;
+    font-size: 0.9em;
+    color: #333;
+    font-weight: 600;
+}
+
+/* 表单按钮样式优化 */
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+}
+
+    padding: 8px 16px;
+    font-size: 0.85em;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    height: 32px;
+    min-width: 80px;
+}
+
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    color: #666;
+}
+
+    background-color: #f8f9fa;
+    border-color: #339af0;
+    color: #333;
+}
+
+    background-color: #339af0;
+    border: 1px solid #339af0;
+    color: white;
+}
+
+    background-color: #258cd1;
+    border-color: #258cd1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.2);
+}
+
+/* 训练详情模态框特定样式 */
+    max-width: 1000px;
+    max-height: 95vh; /* 调大弹框高度 */
+    padding: 25px;
+    margin: 2% auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    position: relative; /* 添加相对定位，为关闭按钮提供定位上下文 */
+}
+
+/* 模态框头部样式 */
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+    margin: 0;
+    font-size: 1.3em;
+    color: #333;
+    font-weight: 600;
+}
+
+/* 关闭按钮样式 */
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    z-index: 10;
+}
+
+    color: #ff4757;
+    background-color: #f8f9fa;
+    transform: none;
+}
+
+/* 训练详情内容区域 */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-top: 0;
+    flex: 1;
+    overflow: visible;
+}
+
+/* 左侧区域 */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow: visible;
+}
+
+/* 左侧训练信息区域 */
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 左侧模型列表区域 */
+    flex: 1;
+    overflow: visible;
+    min-height: 200px;
+}
+
+/* 右侧区域 */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow: visible;
+}
+
+/* 右侧训练日志区域 */
+    /* flex: 1; */
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+}
+
+/* 右侧模型测试区域 */
+    flex-shrink: 0;
+}
+
+/* 标题样式 */
+    margin: 0 0 12px 0;
+    font-size: 1.1em;
+    color: #555;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 训练信息卡片 */
+    background-color: #f8f9fa;
+    color: #333;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    max-height: 350px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding-bottom: 25px;
+}
+
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-color: #dee2e6;
+}
+
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    padding: 6px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* 训练信息卡片滚动条样式 */
+    width: 6px;
+}
+
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+    background: #888;
+    border-radius: 3px;
+}
+
+    background: #555;
+}
+
+/* 模型列表区域 */
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* 训练日志区域 */
+    background-color: #2d3748;
+    border-radius: 10px;
+    padding: 15px;
+    max-height: 350px;
+    min-height: 300px;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    color: #a0aec0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    border: 1px solid #4a5568;
+    box-sizing: border-box;
+    padding-bottom: 25px;
+}
+
+/* 底部模型列表区域 */
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    height: 100%;
+    min-height: 300px;
+    overflow-y: auto;
+}
+
+/* 模型测试区域 */
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 测试按钮样式 */
+    background-color: #339af0;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(51, 154, 240, 0.2);
+}
+
+    background-color: #228be6;
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3);
+    transform: translateY(-1px);
+}
+
+/* 测试结果区域 */
+    margin-top: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    max-height: 280px;
+    object-fit: contain;
+    background-color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 滚动条样式 */
+    width: 8px;
+}
+
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+    background: #888;
+    border-radius: 4px;
+}
+
+    background: #555;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+    
+        max-height: 90vh;
+        margin: 5% auto;
+    }
+}
+
+.modal-header h2,
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-header h2 i,
+.modal-header h3 i {
+    color: #339af0;
+    font-size: 0.9em;
+}
+
+/* 添加训练按钮样式 - 统一风格 */
+    padding: 10px 20px;
+    font-size: 1em;
+    font-weight: 500;
+    border-radius: 6px;
+    background-color: white;
+    border: 1px solid #339af0;
+    color: #339af0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+    background-color: #f0f8ff;
+    border-color: #258cd1;
+    color: #258cd1;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+    transform: translateY(0);
+}
+
+/* 训练任务列表样式 */
+    margin-top: 20px;
+}
+
+.section-header {
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: #555;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 训练任务容器样式 - 更简洁，移除内部滚动条 */
+    border: none;
+    padding: 0;
+    max-height: none;
+    overflow-y: visible;
+    background-color: transparent;
+}
+
+/* 训练任务项样式 - 更紧凑 */
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 任务头部样式 - 更紧凑 */
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0;
+}
+
+.task-info {
+    flex: 1;
+}
+
+.task-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 1em;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.2;
+}
+
+.task-info h4::before {
+    content: "📋";
+    font-size: 0.85em;
+}
+
+/* 任务状态样式 - 更紧凑 */
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 500;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+}
+
+    background-color: #ffc107;
+    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+}
+
+    background-color: #17a2b8;
+    box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+    background-color: #28a745;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+    background-color: #dc3545;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+/* 任务操作按钮样式 - 更紧凑 */
+.task-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.task-actions .btn {
+    padding: 4px 10px;
+    font-size: 0.8em;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    background-color: white;
+    color: #555;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    min-width: 70px;
+}
+
+.task-actions .btn:hover {
+    background-color: #f8f9fa;
+    border-color: #339af0;
+    color: #333;
+}
+
+/* 任务详情样式 - 更美观 */
+.task-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 恢复两列布局，更清晰 */
+    gap: 12px;
+    padding: 12px;
+    border-top: 1px solid #f0f0f0;
+    margin-top: 10px;
+    font-size: 0.85em;
+    background-color: #fafafa;
+    border-radius: 6px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #666;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-value {
+    color: #333;
+    font-weight: 500;
+    background-color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.85em;
+}
+
+/* 模型列表样式 */
+.model-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+}
+
+.model-item:hover {
+    background-color: #e7f5ff;
+    border-color: #339af0;
+    transform: translateX(5px);
+}
+
+.model-item.selected {
+    background-color: #d1ecf1;
+    border-left: 4px solid #17a2b8;
+    box-shadow: 0 2px 6px rgba(23, 162, 184, 0.2);
+}
+
+/* 训练日志样式 */
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    height: 250px;
+    overflow-y: auto;
+    background-color: #000;
+    color: #00ff00;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 测试结果样式 */
+.test-result {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.test-result img {
+    max-width: 100%;
+    max-height: 350px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 滚动条样式 */
+    width: 8px;
+}
+
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+    background: #a8a8a8;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+        max-width: 95%;
+        max-height: 90vh;
+        margin: 5% auto;
+    }
+    
+        max-width: 95%;
+        max-height: 90vh;
+        margin: 5% auto;
+    }
+    
+    .task-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .task-actions {
+        align-self: stretch;
+        justify-content: flex-start;
+    }
+    
+    .task-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 设置弹窗内部布局优化 */
 .settings-modal h2 {
     margin-top: 0;
-    margin-bottom: 20px;
-    color: #333;
-    font-size: 1.5em;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+}
+
+.settings-modal h3 {
+    margin: 0 0 8px 0;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.settings-modal .form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.settings-modal .form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
 }
 
 .settings-modal .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
+
+.settings-modal .form-group label {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.settings-modal .form-group input[type="text"],
+.settings-modal .form-group input[type="number"] {
+    height: 30px;
+    padding: 4px 8px;
+    font-size: 0.85em;
+}
+
+/* YOLO11安装部分布局优化 */
+.settings-modal .yolo11-install-section {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.settings-modal .yolo11-install-section .form-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 3px;
+}
+
+.settings-modal .yolo11-install-section .form-group small {
+    font-size: 0.75em;
+    margin-top: 2px;
+}
+
+/* 作者信息部分布局优化 */
+.settings-modal .author-info {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.settings-modal .author-info .form-group {
+    margin-bottom: 5px;
+    font-size: 0.85em;
+}
+
+/* 快捷键设置部分布局优化 */
+.settings-modal .shortcut-section {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.settings-modal .shortcut-section .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* 按钮大小优化 */
+.settings-modal .btn {
+    height: 32px;
+    padding: 4px 12px;
+    font-size: 0.85em;
+    gap: 4px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+/* 安装状态和进度条优化 */
+.settings-modal #yolo11InstallStatus {
+    margin-top: 8px;
+    padding: 6px 10px;
+    font-size: 0.85em;
+}
+
+.settings-modal #yolo11InstallProgress {
+    margin-top: 6px;
+}
+
+.settings-modal #yolo11InstallProgress .form-row {
+    margin-bottom: 3px;
+    font-size: 0.8em;
+}
+
+/* 移除重复的h2样式，使用上面定义的样式 */
 
 .settings-modal .form-header {
     display: flex;
@@ -1905,7 +4665,10 @@ body {
 
 /* 数据集上传模态框特定样式 */
 .dataset-modal .modal-content {
-    max-width: 500px;
+    max-width: 600px;
+    max-height: 70vh;
+    padding: 20px;
+    margin: 3% auto;
 }
 
 .dataset-modal .dataset-tabs {
@@ -2226,33 +4989,4 @@ body {
     transform: translateY(-2px);
 }
 
-/* 训练模态框特定样式 */
-.train-modal .modal-content {
-    max-width: 500px;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
 
-.train-modal h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: #333;
-    font-size: 1.5em;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.train-modal .train-modal-placeholder {
-    text-align: center;
-    padding: 30px 0;
-    color: #666;
-}
-
-.train-modal .train-modal-placeholder p {
-    margin: 0;
-    font-size: 1.1em;
-}
