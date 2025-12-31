@@ -128,11 +128,11 @@
    # 安装依赖
    pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple 
    
-   # 打包方式一（不推荐，打包的程序不包含静态资源，进入dist文件，需要拷贝静态资源进去）
+   # 如需打包，打包方式一（不推荐，打包的程序不包含静态资源，进入dist文件，需要拷贝静态资源进去）
    pyinstaller -F app.py
    
-   # 打包方式二（强烈推荐，打包的程序包含静态资源，进入dist文件，直接启动xclabel.exe）
-   pyinstaller -F app.spec
+   # 如需打包，打包方式二（强烈推荐，打包的程序包含静态资源，进入dist文件，直接启动xclabel.exe）
+   pyinstaller app.spec
    
    
    ```
