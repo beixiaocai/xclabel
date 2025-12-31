@@ -6,4 +6,8 @@ numpy==1.26.4
 psutil==5.9.1
 requests==2.28.2
 pyinstaller==6.11.1
+flask_socketio==5.6.0
+python-socketio==5.16.0
+python-engineio==4.13.0
+simple-websocket==1.1.0
 

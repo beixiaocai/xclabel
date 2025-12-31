@@ -21,7 +21,7 @@ from AiUtils import AIAutoLabeler
 app = Flask(__name__)
 CORS(app)
 # 配置SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # 任务管理系统
 tasks = {}
@@ -2681,8 +2681,17 @@ def handle_disconnect():
         print(f'移除连接和任务的关联: {sid} -> {task_id}')
 
 if __name__ == '__main__':
-    # 使用SocketIO运行应用
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    import argparse
+    
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description='xclabel图像标注工具')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='绑定的IP地址，默认0.0.0.0')
+    parser.add_argument('--port', type=int, default=5000, help='绑定的端口，默认5000')
+    parser.add_argument('--debug', action='store_true', default=True, help='启用调试模式，默认开启')
+    args = parser.parse_args()
+    
+    # 使用SocketIO运行应用，使用命令行参数
+    socketio.run(app, debug=args.debug, host=args.host, port=args.port)
 
 
 def process_content_data(content_data, annotations):

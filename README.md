@@ -18,8 +18,6 @@
 <img width="720" alt="2" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/2.png">
 <img width="720" alt="3" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/3.png">
 <img width="720" alt="4" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/4.png">
-<img width="720" alt="5" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/5.png">
-<img width="720" alt="6" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/6.png">
 
 ### 版本历史
 
@@ -130,15 +128,19 @@
    # 安装依赖
    pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple 
    
-   # 打包
+   # 打包方式一（不推荐，打包的程序不包含静态资源，进入dist文件，需要拷贝静态资源进去）
    pyinstaller -F app.py
+   
+   # 打包方式二（强烈推荐，打包的程序包含静态资源，进入dist文件，直接启动xclabel.exe）
+   pyinstaller -F app.spec
    
    
    ```
 
 2. **启动服务**：
    ```bash
-   python app.py
+   python app.py --host 0.0.0.0 --port 9924
+   
    ```
 
 3. **访问服务**：
