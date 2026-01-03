@@ -20,6 +20,10 @@ from AiUtils import AIAutoLabeler
 
 app = Flask(__name__)
 CORS(app)
+
+# 应用版本号
+APP_VERSION = "v2.4"
+
 # 配置SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
@@ -392,8 +396,11 @@ class VideoAnnotationTask:
 
 # 配置
 import os
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
-STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
+
+# 使用当前工作目录作为基础目录
+BASE_PATH = os.getcwd()
+UPLOAD_FOLDER = os.path.join(BASE_PATH, 'uploads')
+STATIC_FOLDER = os.path.join(BASE_PATH, 'static')
 ANNOTATIONS_FOLDER = os.path.join(STATIC_FOLDER, 'annotations')
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -428,16 +435,16 @@ if not os.path.exists(CLASSES_FILE):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', version=APP_VERSION)
 
 @app.route('/auto-label')
 def auto_label():
-    return render_template('auto_label.html')
+    return render_template('auto_label.html', version=APP_VERSION)
 
 @app.route('/file-manager')
 def file_manager():
     """文件管理页面"""
-    return render_template('file_manager.html')
+    return render_template('file_manager.html', version=APP_VERSION)
 
 @app.route('/api/files')
 def get_files():
@@ -457,7 +464,12 @@ def get_files():
         }), 400
     
     # 构建完整路径
-    base_path = app.root_path
+    # 确保uploads目录存在
+    if not os.path.exists('uploads'):
+        os.makedirs('uploads', exist_ok=True)
+    
+    # 优先使用当前工作目录下的uploads目录
+    base_path = os.getcwd()
     full_path = os.path.join(base_path, path)
     
     # 检查路径是否存在
@@ -481,10 +493,10 @@ def get_files():
     for item in items:
         item_path = os.path.join(full_path, item)
         item_info = {
-            'name': item,
-            'path': os.path.join(path, item),
-            'relativePath': os.path.relpath(item_path, os.path.join(base_path, 'uploads')).replace('\\', '/') if path.startswith('uploads') else None
-        }
+                'name': item,
+                'path': os.path.join(path, item).replace('\\', '/'),
+                'relativePath': os.path.relpath(item_path, os.path.join(base_path, 'uploads')).replace('\\', '/') if path.startswith('uploads') else None
+            }
         
         if os.path.isdir(item_path):
             # 文件夹
@@ -2657,10 +2669,8 @@ def handle_connect():
     print('Client connected')
 
 @socketio.on('disconnect')
-def handle_disconnect():
+def handle_disconnect(sid):
     """处理客户端断开连接"""
-    from flask_socketio import request as socket_request
-    sid = socket_request.sid
     print(f'Client disconnected: {sid}')
     
     # 检查该连接是否有关联的任务

@@ -5,23 +5,43 @@
 * github开源地址：https://github.com/beixiaocai/xclabel
 
 ### 软件介绍
-- xclabel是一款功能强大的开源图像标注工具，支持样本导入、标注、数据集导出和YOLO11模型管理
-- 采用Python+Flask开发，跨平台支持Windows/Linux/Mac
+- xclabel是一款功能强大的开源图像标注工具，支持样本导入、标注、自动标注、数据集导出和YOLO11模型管理
+- 采用Python+Flask开发，跨平台支持Windows/Linux/Mac，可通过源码运行或直接运行打包后的exe文件
 - 支持多种标注类型，包括矩形、多边形等
 - 支持导入图片文件夹、视频文件、LabelMe格式数据集
+- 支持RTSP流处理，可直接对网络摄像头流进行标注
+- 支持自动标注功能，可对图片和视频进行AI自动标注
 - 支持导出YOLO格式数据集，可自定义训练/验证/测试比例
 - 集成YOLO11模型管理，支持安装、卸载和预训练模型下载
+- 内置文件管理系统，支持文件浏览、上传、下载、删除、新建文件夹等操作
+- 支持命令行参数配置，可通过--host和--port指定IP和端口
 - 简洁直观的用户界面，易于使用
 
 ### 软件截图
 <img width="720" alt="1" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/1.png">
 <img width="720" alt="2" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/2.png">
 <img width="720" alt="3" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/3.png">
-<img width="720" alt="4" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/4.png">
 
 ### 版本历史
 
-#### v2.3 (当前版本)
+#### v2.4 (当前版本)
+- 发布时间：2026/01/03
+- **功能增强**：
+  - 优化RTSP流处理机制，修复标注进度无返回问题
+  - 改进SocketIO断开连接处理，修复disconnect handler error
+  - 实现版本号统一管理，后台定义APP_VERSION变量，所有页面读取该变量显示
+- **打包优化**：
+  - 修复打包后运行报错问题
+  - 将打包后的程序名称从app.exe改为xclabel.exe
+  - 优化spec文件配置，确保所有依赖和资源正确打包
+- **Bug修复**：
+  - 修复自动标注功能中的各种异常处理
+  - 优化异步模式配置，确保服务稳定运行
+  - 修复文件管理页面无法显示文件夹和文件内容的问题
+  - 修复打包程序中图片文件无法正常显示的问题
+  - 改进路径处理，使用当前工作目录作为基础目录，确保程序在不同环境下正常运行
+
+#### v2.3
 - 发布时间：2025/12/30
 - **新增文件管理系统**：
   - 支持文件系统导航和路径浏览
