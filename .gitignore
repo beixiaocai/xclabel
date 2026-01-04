@@ -4,6 +4,8 @@
 .vs
 plugins
 uploads
+dist
+build
 venv
 __pycache__
 app/__pycache__

@@ -133,6 +133,71 @@ xclabel/
 - **图像处理**：OpenCV, PIL
 - **YOLO11集成**：Ultralytics YOLO11
 
+### 调用示例
+
+#### 示例1：调用阿里云大模型进行图像分析
+
+```python
+from AiUtils import AIAutoLabeler
+
+# 初始化AIAutoLabeler实例
+api_key = "your_aliyun_api_key"  # 替换为您的阿里云API密钥
+model = "qwen-vl-max"  # 替换为您要使用的阿里云模型名称
+
+# 创建自动标注器实例
+labeler = AIAutoLabeler(
+    model_api_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    api_key=api_key,
+    inference_tool="阿里云大模型",
+    model=model,
+    prompt="检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}"
+)
+
+# 分析图像
+image_path = "test.jpg"  # 替换为您的图像路径
+result = labeler.analyze_image(image_path)
+
+# 解析结果
+detections = result.get("detections", [])
+print(f"检测到 {len(detections)} 个目标：")
+for i, detection in enumerate(detections):
+    label = detection.get("label", "unknown")
+    confidence = detection.get("confidence", 0.0)
+    bbox = detection.get("bbox", [])
+    print(f"目标 {i+1}: {label} (置信度: {confidence:.2f})，位置: {bbox}")
+```
+
+#### 示例2：调用LMStudio进行图像分析
+
+```python
+from AiUtils import AIAutoLabeler
+
+# 初始化AIAutoLabeler实例
+lmstudio_url = "http://localhost:1234/v1"  # LMStudio的API地址
+model = "qwen/qwen3-vl-8b"  # LMStudio中运行的模型名称
+
+# 创建自动标注器实例
+labeler = AIAutoLabeler(
+    model_api_url=lmstudio_url,
+    inference_tool="LMStudio",
+    model=model,
+    prompt="检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}"
+)
+
+# 分析图像
+image_path = "test.jpg"  # 替换为您的图像路径
+result = labeler.analyze_image(image_path)
+
+# 解析结果
+detections = result.get("detections", [])
+print(f"检测到 {len(detections)} 个目标：")
+for i, detection in enumerate(detections):
+    label = detection.get("label", "unknown")
+    confidence = detection.get("confidence", 0.0)
+    bbox = detection.get("bbox", [])
+    print(f"目标 {i+1}: {label} (置信度: {confidence:.2f})，位置: {bbox}")
+```
+
 ### 授权协议
 - 本项目自有代码使用宽松的MIT协议，在保留版权信息的情况下可以自由应用于各自商用、非商业的项目。
 - 本项目使用了一些第三方库，使用本项目时请遵循相应第三方库的授权协议。

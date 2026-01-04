@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
 let currentImage = null;
 let currentAnnotations = [];
 let classes = [];
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeApp() {
     loadClasses();
     loadImages();
+    loadShortcutSettings();
     setupEventListeners();
 }
 
@@ -1130,14 +1131,12 @@ function clearCurrentAnnotations() {
         return;
     }
     
-    if (confirm(`确定要清除当前图片的 ${currentAnnotations.length} 个标注吗？`)) {
-        currentAnnotations = [];
-        selectedAnnotationId = null; // 重置选中状态
-        updateAnnotationListDebounced();
-        saveAnnotations();
-        redrawCanvas();
-        showToast('标注已清除');
-    }
+    currentAnnotations = [];
+    selectedAnnotationId = null; // 重置选中状态
+    updateAnnotationListDebounced();
+    saveAnnotations();
+    redrawCanvas();
+    showToast('标注已清除');
 }
 
 // 保存标注
@@ -1881,26 +1880,132 @@ function handleSettingsSave(e) {
     
     const clearShortcut = document.getElementById('clearShortcut').value;
     const saveShortcut = document.getElementById('saveShortcut').value;
+    const prevImageShortcut = document.getElementById('prevImageShortcut').value;
+    const nextImageShortcut = document.getElementById('nextImageShortcut').value;
     
-    // 这里可以保存设置到服务器或localStorage
+    // 保存设置到localStorage
+    const settings = {
+        clearShortcut,
+        saveShortcut,
+        prevImageShortcut,
+        nextImageShortcut
+    };
+    localStorage.setItem('xclabelSettings', JSON.stringify(settings));
     
     showToast('设置已保存');
     document.getElementById('settingsModal').style.display = 'none';
+    
+    // 重新加载快捷键设置
+    loadShortcutSettings();
+}
+
+// 快捷键设置
+let shortcutSettings = {
+    clearShortcut: 'Ctrl+Shift+D',
+    saveShortcut: 'Ctrl+S',
+    prevImageShortcut: 'ArrowUp',
+    nextImageShortcut: 'ArrowDown'
+};
+
+// 加载快捷键设置
+function loadShortcutSettings() {
+    const savedSettings = localStorage.getItem('xclabelSettings');
+    if (savedSettings) {
+        shortcutSettings = { ...shortcutSettings, ...JSON.parse(savedSettings) };
+        
+        // 更新设置表单中的值
+        document.getElementById('clearShortcut').value = shortcutSettings.clearShortcut;
+        document.getElementById('saveShortcut').value = shortcutSettings.saveShortcut;
+        document.getElementById('prevImageShortcut').value = shortcutSettings.prevImageShortcut;
+        document.getElementById('nextImageShortcut').value = shortcutSettings.nextImageShortcut;
+    }
+}
+
+// 解析快捷键字符串，返回包含key和修饰键的对象
+function parseShortcut(shortcutStr) {
+    const parts = shortcutStr.toLowerCase().split('+');
+    const key = parts.pop();
+    return {
+        key: key === 'arrowup' ? 'ArrowUp' : 
+             key === 'arrowdown' ? 'ArrowDown' :
+             key === 'arrowleft' ? 'ArrowLeft' :
+             key === 'arrowright' ? 'ArrowRight' :
+             key === 'space' ? ' ' :
+             key === 'esc' ? 'Escape' :
+             key === 'enter' ? 'Enter' :
+             key === 'backspace' ? 'Backspace' :
+             key.charAt(0).toUpperCase() + key.slice(1),
+        ctrlKey: parts.includes('ctrl'),
+        shiftKey: parts.includes('shift'),
+        altKey: parts.includes('alt')
+    };
 }
 
 // 处理键盘快捷键
 function handleKeyDown(e) {
-    // Ctrl+S 保存
-    if (e.ctrlKey && e.key === 's') {
+    // 保存
+    const saveShortcut = parseShortcut(shortcutSettings.saveShortcut);
+    if (e.ctrlKey === saveShortcut.ctrlKey && 
+        e.shiftKey === saveShortcut.shiftKey && 
+        e.altKey === saveShortcut.altKey && 
+        e.key.toLowerCase() === saveShortcut.key.toLowerCase()) {
         e.preventDefault();
         saveAnnotations();
     }
     
-    // Ctrl+Shift+D 清除标注
-    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+    // 清除标注
+    const clearShortcut = parseShortcut(shortcutSettings.clearShortcut);
+    if (e.ctrlKey === clearShortcut.ctrlKey && 
+        e.shiftKey === clearShortcut.shiftKey && 
+        e.altKey === clearShortcut.altKey && 
+        e.key.toLowerCase() === clearShortcut.key.toLowerCase()) {
         e.preventDefault();
         clearCurrentAnnotations();
     }
+    
+    // 上一张图片
+    const prevShortcut = parseShortcut(shortcutSettings.prevImageShortcut);
+    if (e.ctrlKey === prevShortcut.ctrlKey && 
+        e.shiftKey === prevShortcut.shiftKey && 
+        e.altKey === prevShortcut.altKey && 
+        e.key.toLowerCase() === prevShortcut.key.toLowerCase()) {
+        e.preventDefault();
+        switchImage('prev');
+    }
+    
+    // 下一张图片
+    const nextShortcut = parseShortcut(shortcutSettings.nextImageShortcut);
+    if (e.ctrlKey === nextShortcut.ctrlKey && 
+        e.shiftKey === nextShortcut.shiftKey && 
+        e.altKey === nextShortcut.altKey && 
+        e.key.toLowerCase() === nextShortcut.key.toLowerCase()) {
+        e.preventDefault();
+        switchImage('next');
+    }
+}
+
+// 切换图片
+function switchImage(direction) {
+    if (!currentImage || !window.allImages) return;
+    
+    // 获取当前图片在列表中的索引
+    const currentIndex = window.allImages.findIndex(img => img.name === currentImage);
+    if (currentIndex === -1) return;
+    
+    let nextIndex;
+    if (direction === 'prev') {
+        // 上一张图片
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : window.allImages.length - 1;
+    } else {
+        // 下一张图片
+        nextIndex = currentIndex < window.allImages.length - 1 ? currentIndex + 1 : 0;
+    }
+    
+    // 获取下一张图片的名称
+    const nextImageName = window.allImages[nextIndex].name;
+    
+    // 切换到下一张图片
+    selectImage(nextImageName);
 }
 
 // 设置模态框关闭事件
@@ -2011,7 +2116,8 @@ function setupDatasetUploadEvents() {
     // 视频文件上传
     const selectVideoBtn = document.getElementById('selectVideoBtn');
     const videoInput = document.getElementById('videoInput');
-    if (selectVideoBtn && videoInput) {
+    const videoUploadArea = document.getElementById('videoUploadArea');
+    if (selectVideoBtn && videoInput && videoUploadArea) {
         selectVideoBtn.addEventListener('click', function() {
             videoInput.click();
         });
@@ -2019,18 +2125,63 @@ function setupDatasetUploadEvents() {
         videoInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                const selectedVideoInfo = document.getElementById('selectedVideoInfo');
-                const selectedVideoName = document.getElementById('selectedVideoName');
-                selectedVideoName.textContent = file.name;
-                selectedVideoInfo.style.display = 'block';
-                
-                // 启用抽帧按钮
-                const extractFramesBtn = document.getElementById('extractFramesBtn');
-                if (extractFramesBtn) {
-                    extractFramesBtn.disabled = false;
+                handleVideoFileSelect(file);
+            }
+        });
+        
+        // 添加拖入功能
+        videoUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.add('drag-over');
+        });
+        
+        videoUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+        });
+        
+        videoUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+            
+            // 获取拖入的文件
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                // 只处理第一个文件
+                const file = files[0];
+                // 检查是否为视频文件
+                if (file.type.startsWith('video/')) {
+                    // 更新videoInput的files属性
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    videoInput.files = dataTransfer.files;
+                    
+                    // 处理视频文件
+                    handleVideoFileSelect(file);
+                } else {
+                    showToast('请拖入视频文件');
                 }
             }
         });
+    }
+    
+    // 处理视频文件选择
+    function handleVideoFileSelect(file) {
+        if (file) {
+            const selectedVideoInfo = document.getElementById('selectedVideoInfo');
+            const selectedVideoName = document.getElementById('selectedVideoName');
+            selectedVideoName.textContent = file.name;
+            selectedVideoInfo.style.display = 'block';
+            
+            // 启用抽帧按钮
+            const extractFramesBtn = document.getElementById('extractFramesBtn');
+            if (extractFramesBtn) {
+                extractFramesBtn.disabled = false;
+            }
+        }
     }
     
     // 视频抽帧按钮

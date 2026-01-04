@@ -142,6 +142,9 @@ class AIAutoLabeler:
                 content = content[:-3]
             content = content.strip()
             
+            # 初始化detections变量，避免引用前未赋值的错误
+            detections = []
+            
             # 首先尝试直接解析JSON，这是最可靠的方法
             try:
                 # 直接解析JSON

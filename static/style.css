@@ -1123,16 +1123,24 @@ body {
 }
 
 .class-item.selected {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 0 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 0 2px #007bff, 0 0 0 4px rgba(0, 123, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05);
+    border-radius: 8px;
+    z-index: 10;
+    transition: all 0.2s ease;
+    border: 1px solid #007bff;
 }
 
 .class-color {
-    display: none; /* 隐藏小圆圈 */
-    width: 0;
-    height: 0;
-    margin-right: 0;
-    padding: 0;
-    border: none;
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
 }
 
 .class-name {
@@ -4724,6 +4732,20 @@ body {
 .dataset-modal .upload-area:hover {
     border-color: #999;
     background-color: #f0f0f0;
+}
+
+.dataset-modal .upload-area.drag-over {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+    transform: scale(1.02);
+}
+
+.dataset-modal .upload-area.drag-over i {
+    color: #007bff;
+}
+
+.dataset-modal .upload-area.drag-over p {
+    color: #007bff;
 }
 
 .dataset-modal .upload-area i {

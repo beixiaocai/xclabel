@@ -10,6 +10,7 @@ import tempfile
 import threading
 import logging
 import uuid
+import time
 from urllib.parse import urlparse
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -263,9 +264,19 @@ class VideoAnnotationTask:
                     content = content.strip()
                     
                     try:
-                        detections = json.loads(content).get("detections", [])
-                        if isinstance(detections, dict):
-                            detections = [detections]
+                        parsed_json = json.loads(content)
+                        # 检查解析结果类型
+                        if isinstance(parsed_json, dict):
+                            # 如果是字典，直接获取detections字段
+                            detections = parsed_json.get("detections", [])
+                            if isinstance(detections, dict):
+                                detections = [detections]
+                        elif isinstance(parsed_json, list):
+                            # 如果是数组，直接作为检测结果
+                            detections = parsed_json
+                        else:
+                            # 其他类型，默认为空列表
+                            detections = []
                     except json.JSONDecodeError as e:
                         # JSON解析失败，继续处理下一帧
                         logging.error(f"Failed to parse JSON response: {str(e)}")
@@ -278,47 +289,47 @@ class VideoAnnotationTask:
                         break
                         
                     # 渲染检测结果
-                labeled_frame = frame.copy()
-                
-                for detection in detections:
-                    if isinstance(detection, dict):
-                        label = detection.get("label", "unknown")
-                        confidence = detection.get("confidence", 0.0)
-                        bbox = detection.get("bbox", [0, 0, 0, 0])
-                    else:
-                        continue
+                    labeled_frame = frame.copy()
                     
-                    x1, y1, x2, y2 = map(int, bbox)
-                    color = colors.get(label, colors["default"])
-                    
-                    # 绘制检测框
-                    cv2.rectangle(labeled_frame, (x1, y1), (x2, y2), color, 2)
-                    
-                    # 绘制标签
-                    label_text = f"{label}: {confidence:.2f}"
-                    
-                    # 尝试使用PIL渲染中文
-                    try:
-                        from PIL import Image, ImageDraw, ImageFont
-                        import numpy as np
+                    for detection in detections:
+                        if isinstance(detection, dict):
+                            label = detection.get("label", "unknown")
+                            confidence = detection.get("confidence", 0.0)
+                            bbox = detection.get("bbox", [0, 0, 0, 0])
+                        else:
+                            continue
                         
-                        img_pil = Image.fromarray(cv2.cvtColor(labeled_frame, cv2.COLOR_BGR2RGB))
-                        draw = ImageDraw.Draw(img_pil)
+                        x1, y1, x2, y2 = map(int, bbox)
+                        color = colors.get(label, colors["default"])
                         
+                        # 绘制检测框
+                        cv2.rectangle(labeled_frame, (x1, y1), (x2, y2), color, 2)
+                        
+                        # 绘制标签
+                        label_text = f"{label}: {confidence:.2f}"
+                        
+                        # 尝试使用PIL渲染中文
                         try:
-                            font = ImageFont.truetype("simhei.ttf", 16)
-                        except IOError:
-                            font = ImageFont.load_default()
-                        
-                        text_x = x1
-                        text_y = y1 - 20 if y1 > 20 else y1 + 20
-                        draw.text((text_x, text_y), label_text, font=font, fill=tuple(color[::-1]))
-                        
-                        labeled_frame = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
-                    except Exception:
-                        # 使用OpenCV默认渲染
-                        cv2.putText(labeled_frame, label_text, (x1, y1 - 10 if y1 > 10 else y1 + 20), 
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                            from PIL import Image, ImageDraw, ImageFont
+                            import numpy as np
+                            
+                            img_pil = Image.fromarray(cv2.cvtColor(labeled_frame, cv2.COLOR_BGR2RGB))
+                            draw = ImageDraw.Draw(img_pil)
+                            
+                            try:
+                                font = ImageFont.truetype("simhei.ttf", 16)
+                            except IOError:
+                                font = ImageFont.load_default()
+                            
+                            text_x = x1
+                            text_y = y1 - 20 if y1 > 20 else y1 + 20
+                            draw.text((text_x, text_y), label_text, font=font, fill=tuple(color[::-1]))
+                            
+                            labeled_frame = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+                        except Exception:
+                            # 使用OpenCV默认渲染
+                            cv2.putText(labeled_frame, label_text, (x1, y1 - 10 if y1 > 10 else y1 + 20), 
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                     
                     # 保存渲染后的帧
                     labeled_frame_path = os.path.join(labeled_dir, frame_filename)
@@ -596,25 +607,44 @@ def get_images():
             print(f"Error reading annotations file: {e}")
             annotations = {}
     
-    for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+    # 获取所有图片文件，并按照创建时间排序（最新的在最后）
+    upload_folder = app.config['UPLOAD_FOLDER']
+    image_files = []
+    
+    for filename in os.listdir(upload_folder):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
-            # 获取图片尺寸信息
+            image_path = os.path.join(upload_folder, filename)
+            # 获取文件创建时间
             try:
-                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                with Image.open(image_path) as img:
-                    width, height = img.size
-            except Exception:
-                width, height = 0, 0
-            
-            # 获取标注数量
-            annotation_count = len(annotations.get(filename, []))
-            
-            images.append({
-                'name': filename,
-                'width': width,
-                'height': height,
-                'annotation_count': annotation_count
-            })
+                create_time = os.path.getctime(image_path)
+                image_files.append((create_time, filename))
+            except Exception as e:
+                print(f"Error getting file creation time for {filename}: {e}")
+                # 如果获取创建时间失败，使用当前时间作为默认值
+                image_files.append((time.time(), filename))
+    
+    # 按照创建时间排序，最早的在前面，最新的在后面
+    image_files.sort(key=lambda x: x[0])
+    
+    # 构建图片列表
+    for create_time, filename in image_files:
+        # 获取图片尺寸信息
+        try:
+            image_path = os.path.join(upload_folder, filename)
+            with Image.open(image_path) as img:
+                width, height = img.size
+        except Exception:
+            width, height = 0, 0
+        
+        # 获取标注数量
+        annotation_count = len(annotations.get(filename, []))
+        
+        images.append({
+            'name': filename,
+            'width': width,
+            'height': height,
+            'annotation_count': annotation_count
+        })
     return jsonify({'images': images})
 
 
@@ -874,12 +904,9 @@ def upload_video_for_label():
         # 构建完整的文件路径
         file_path = os.path.join(upload_dir, file.filename)
         
-        # 检查文件是否已存在
+        # 检查文件是否已存在，如果存在则删除
         if os.path.exists(file_path):
-            return jsonify({
-                'success': False,
-                'error': f'文件 "{file.filename}" 已存在'
-            }), 400
+            os.remove(file_path)
         
         # 保存文件
         file.save(file_path)
