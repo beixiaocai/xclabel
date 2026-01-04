@@ -538,16 +538,22 @@
 
                     <!-- 配置区域 -->
                     <div class="tool-section">
-                        <h4>API配置</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4>API配置</h4>
+                            <button type="button" onclick="saveApiConfig()" class="btn btn-sm btn-primary" style="padding: 4px 8px; font-size: 12px;">
+                                <i class="fas fa-save"></i> 保存配置
+                            </button>
+                        </div>
                         <div class="form-group">
                             <label for="inferenceTool">推理工具</label>
                             <div class="input-with-icon">
                                 <i class="fas fa-server"></i>
                                 <select id="inferenceTool" class="with-icon">
-                                    <option value="LMStudio" selected>LMStudio</option>
-                                    <option value="vLLM">vLLM</option>
-                                    <option value="ollama">ollama</option>
-                                </select>
+                                <option value="LMStudio" selected>LMStudio</option>
+                                <option value="vLLM">vLLM</option>
+                                <option value="ollama">ollama</option>
+                                <option value="阿里云大模型">阿里云大模型</option>
+                            </select>
                             </div>
                         </div>
                         <div class="form-group">
@@ -813,6 +819,9 @@
             
             // 初始化图片放大功能
             initImageZoom();
+            
+            // 加载API配置
+            loadApiConfig();
         });
 
         // 设置表单提交事件
@@ -906,6 +915,52 @@
                 toggleIcon.classList.remove('fa-eye');
                 toggleIcon.classList.add('fa-eye-slash');
             }
+        }
+
+        // 保存API配置
+        function saveApiConfig() {
+            const config = getApiConfig();
+            
+            fetch('/api/save-api-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('API配置保存成功！');
+                } else {
+                    alert('API配置保存失败：' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('请求失败：' + error.message);
+            });
+        }
+
+        // 加载API配置
+        function loadApiConfig() {
+            fetch('/api/load-api-config')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const config = data.config;
+                    document.getElementById('inferenceTool').value = config.inferenceTool;
+                    document.getElementById('model').value = config.model;
+                    document.getElementById('apiUrl').value = config.apiUrl;
+                    document.getElementById('apiKey').value = config.apiKey;
+                    document.getElementById('timeout').value = config.timeout;
+                    document.getElementById('prompt').value = config.prompt;
+                } else {
+                    console.error('加载API配置失败：', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('请求失败：', error.message);
+            });
         }
 
         // 获取API配置

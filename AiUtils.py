@@ -2,11 +2,18 @@ import cv2
 import os
 import requests
 import json
+import re
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import time
 import logging
 from collections import deque
+
+# 尝试导入OpenAI库，用于调用阿里云大模型
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 # 默认日志配置
 logging.basicConfig(
@@ -54,6 +61,274 @@ class AIAutoLabeler:
             "default": (0, 255, 255)
         }
     
+    def analyze_image_alibaba(self, image_path: str) -> Dict[str, Any]:
+        """调用阿里云大模型API分析图像
+        
+        Args:
+            image_path: 图像文件路径
+            
+        Returns:
+            大模型返回的分析结果
+        """
+        import base64
+        import numpy as np
+        
+        if OpenAI is None:
+            raise Exception("OpenAI库未安装，请使用pip install openai安装")
+        
+        # 读取图像
+        img = cv2.imread(image_path)
+        if img is None:
+            raise ValueError(f"无法读取图像: {image_path}")
+        
+        # 保存原始图片尺寸
+        original_h, original_w = img.shape[:2]
+        
+        # 阿里云大模型可能需要较小的图像尺寸
+        # 按照参考代码中的缩放比例
+        resize_h = int(original_h / 3)
+        resize_w = int(original_w / 3)
+        image = cv2.resize(img, (resize_w, resize_h), interpolation=cv2.INTER_NEAREST)
+        
+        # 转换为JPEG格式
+        encoded_image_byte = cv2.imencode(".jpg", image)[1].tobytes()
+        image_base64 = base64.b64encode(encoded_image_byte).decode("utf-8")
+        
+        # 初始化OpenAI客户端
+        client = OpenAI(
+            api_key=self.api_key,
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+        )
+        
+        # 构建请求消息
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_base64}"
+                        },
+                    },
+                    {"type": "text", "text": self.prompt},
+                ],
+            }
+        ]
+        
+        # 发送请求
+        try:
+            t1 = time.time()
+            completion = client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+            )
+            t2 = time.time()
+            t_len = t2 - t1
+            logging.info(f"阿里云大模型请求耗时: {t_len:.2f}秒")
+            
+            content = completion.choices[0].message.content
+            logging.info(f"阿里云大模型原始响应: {content}")
+            
+            # 尝试解析阿里云返回的特殊格式
+            # 阿里云返回格式可能是：```json{"detections":[...]``` 或数组格式 [ {...} ]
+            # 尝试多种解析方式
+            result_json = {"detections": []}
+            
+            # 尝试去除可能的Markdown格式
+            if content.startswith('```json'):
+                content = content[7:]
+            if content.endswith('```'):
+                content = content[:-3]
+            content = content.strip()
+            
+            # 首先尝试直接解析JSON，这是最可靠的方法
+            try:
+                # 直接解析JSON
+                parsed_json = json.loads(content)
+                
+                # 检查解析结果类型
+                if isinstance(parsed_json, dict):
+                    # 如果是字典，直接获取detections字段
+                    detections = parsed_json.get("detections", [])
+                    if isinstance(detections, dict):
+                        detections = [detections]
+                elif isinstance(parsed_json, list):
+                    # 如果是数组，直接作为检测结果
+                    detections = parsed_json
+                else:
+                    # 其他类型，默认为空列表
+                    detections = []
+                
+                # 处理检测结果
+                scale = 3.0  # 因为之前缩小了1/3，所以需要放大3倍
+                for detection in detections:
+                    if isinstance(detection, dict):
+                        label = detection.get("label", "unknown")
+                        confidence = detection.get("confidence", 0.0)
+                        bbox = detection.get("bbox", [])
+                        
+                        # 确保bbox是有效的
+                        if bbox:
+                            # 处理不同格式的bbox
+                            if isinstance(bbox, list):
+                                # 如果bbox是列表，确保只取前4个值
+                                bbox_values = list(map(float, bbox[:4]))
+                            else:
+                                # 如果bbox是字符串或其他类型，尝试转换
+                                bbox_str = str(bbox)
+                                # 清理bbox值，只保留数字和逗号
+                                clean_bbox = re.sub(r'[^0-9, ]', '', bbox_str)
+                                # 移除多余空格
+                                clean_bbox = re.sub(r'\s+', ' ', clean_bbox).strip()
+                                # 确保格式为"x1,y1,x2,y2"
+                                clean_bbox = re.sub(r'\s*,\s*', ',', clean_bbox)
+                                # 分割并转换为浮点数
+                                bbox_values = list(map(float, clean_bbox.split(',')))
+                                # 只取前4个值
+                                bbox_values = bbox_values[:4]
+                            
+                            if len(bbox_values) == 4:
+                                # 转换坐标到原始尺寸
+                                x1, y1, x2, y2 = bbox_values
+                                x1 = int(x1 * scale)
+                                y1 = int(y1 * scale)
+                                x2 = int(x2 * scale)
+                                y2 = int(y2 * scale)
+                                
+                                # 添加到检测结果
+                                result_json["detections"].append({
+                                    "label": label,
+                                    "confidence": confidence,
+                                    "bbox": [x1, y1, x2, y2]
+                                })
+                
+                # 如果直接解析JSON成功并获取到了检测结果，直接返回
+                if result_json["detections"]:
+                    return result_json
+            except json.JSONDecodeError:
+                # 如果直接解析JSON失败，再尝试正则表达式提取
+                logging.info(f"直接解析JSON失败，尝试使用正则表达式提取: {content}")
+                
+                # 使用正则表达式提取检测信息
+                import re
+                
+                # 匹配模式：{"label":"自行车","confidence":0.9,"bbox":[[672,18,745,83]}
+                detection_pattern = r'\{[^}]*"label"\s*:\s*"([^"]+)"[^}]*"confidence"\s*:\s*([0-9.]+)[^}]*"bbox"\s*:\s*\[*([0-9, ]+)\]*[^}]*\}'
+                matches = re.findall(detection_pattern, content, re.DOTALL)
+                
+                if matches:
+                    scale = 3.0  # 因为之前缩小了1/3，所以需要放大3倍
+                    for match in matches:
+                        label = match[0]
+                        confidence = float(match[1])
+                        bbox_str = match[2]
+                        
+                        # 清理bbox值，只保留数字和逗号
+                        clean_bbox = re.sub(r'[^0-9, ]', '', bbox_str)
+                        # 移除多余空格
+                        clean_bbox = re.sub(r'\s+', ' ', clean_bbox).strip()
+                        # 确保格式为"x1,y1,x2,y2"
+                        clean_bbox = re.sub(r'\s*,\s*', ',', clean_bbox)
+                        
+                        # 分割并转换为浮点数
+                        try:
+                            bbox_values = list(map(float, clean_bbox.split(',')))
+                            # 只取前4个值
+                            bbox_values = bbox_values[:4]
+                            
+                            if len(bbox_values) == 4:
+                                # 转换坐标到原始尺寸
+                                x1, y1, x2, y2 = bbox_values
+                                x1 = int(x1 * scale)
+                                y1 = int(y1 * scale)
+                                x2 = int(x2 * scale)
+                                y2 = int(y2 * scale)
+                                
+                                # 添加到检测结果
+                                result_json["detections"].append({
+                                    "label": label,
+                                    "confidence": confidence,
+                                    "bbox": [x1, y1, x2, y2]
+                                })
+                        except ValueError:
+                            # 如果转换失败，跳过此检测
+                            logging.warning(f"无法解析bbox值: {clean_bbox}")
+                            continue
+                else:
+                    # 尝试另一种方法：手动解析字符串
+                    try:
+                        # 提取label
+                        label_match = re.search(r'"label"\s*:\s*"([^"]+)"', content)
+                        # 提取confidence
+                        confidence_match = re.search(r'"confidence"\s*:\s*([0-9.]+)', content)
+                        # 提取bbox值
+                        bbox_match = re.search(r'"bbox"\s*:\s*\[*([0-9, ]+)\]*', content)
+                        
+                        if label_match and confidence_match and bbox_match:
+                            label = label_match.group(1)
+                            confidence = float(confidence_match.group(1))
+                            bbox_str = bbox_match.group(1)
+                            
+                            # 清理bbox值
+                            clean_bbox = re.sub(r'[^0-9, ]', '', bbox_str)
+                            clean_bbox = re.sub(r'\s+', ' ', clean_bbox).strip()
+                            clean_bbox = re.sub(r'\s*,\s*', ',', clean_bbox)
+                            
+                            # 分割并转换为浮点数
+                            bbox_values = list(map(float, clean_bbox.split(',')))
+                            bbox_values = bbox_values[:4]
+                            
+                            if len(bbox_values) == 4:
+                                scale = 3.0
+                                x1, y1, x2, y2 = bbox_values
+                                x1 = int(x1 * scale)
+                                y1 = int(y1 * scale)
+                                x2 = int(x2 * scale)
+                                y2 = int(y2 * scale)
+                                
+                                result_json["detections"].append({
+                                    "label": label,
+                                    "confidence": confidence,
+                                    "bbox": [x1, y1, x2, y2]
+                                })
+                    except Exception as e:
+                        # 最后尝试直接从字符串中提取数字
+                        try:
+                            # 提取所有数字
+                            all_numbers = re.findall(r'\d+\.?\d*', content)
+                            if len(all_numbers) >= 5:  # label + confidence + 4 bbox values
+                                # 假设格式是：label, confidence, x1, y1, x2, y2
+                                label = "unknown"  # 默认标签
+                                confidence = float(all_numbers[0])
+                                x1 = float(all_numbers[1])
+                                y1 = float(all_numbers[2])
+                                x2 = float(all_numbers[3])
+                                y2 = float(all_numbers[4])
+                                
+                                scale = 3.0
+                                x1 = int(x1 * scale)
+                                y1 = int(y1 * scale)
+                                x2 = int(x2 * scale)
+                                y2 = int(y2 * scale)
+                                
+                                result_json["detections"].append({
+                                    "label": label,
+                                    "confidence": confidence,
+                                    "bbox": [x1, y1, x2, y2]
+                                })
+                        except Exception as final_e:
+                            error_msg = f"无法解析阿里云模型返回的JSON: {content}"
+                            logging.error(error_msg)
+                            # 不再抛出异常，而是返回空结果，这样不会导致整个标注失败
+                            result_json = {"detections": []}
+            
+            return result_json
+        except Exception as e:
+            error_msg = f"阿里云大模型分析图像失败: {str(e)}"
+            logging.error(error_msg)
+            raise Exception(error_msg)
+    
     def analyze_image(self, image_path: str) -> Dict[str, Any]:
         """调用大模型API分析图像
         
@@ -63,6 +338,17 @@ class AIAutoLabeler:
         Returns:
             大模型返回的分析结果
         """
+        # 根据推理工具类型调用不同的分析方法
+        if self.inference_tool == "阿里云大模型":
+            result = self.analyze_image_alibaba(image_path)
+            # 确保返回的是字典格式
+            if isinstance(result, dict):
+                return result
+            else:
+                logging.error(f"阿里云大模型返回了非字典格式结果: {result}")
+                return {"detections": []}
+        
+        # 原有的分析逻辑保留
         import base64
         import numpy as np
         
@@ -84,14 +370,14 @@ class AIAutoLabeler:
         if img is None:
             raise ValueError(f"无法读取图像: {image_path}")
         
-        # 压缩图像（调整大小）
-        max_size = 640  # 最大边长
-        h, w = img.shape[:2]
-        if max(h, w) > max_size:
-            scale = max_size / max(h, w)
-            new_w = int(w * scale)
-            new_h = int(h * scale)
-            img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        # 保存原始图片尺寸（不缩放，直接使用原始尺寸）
+        original_h, original_w = img.shape[:2]
+        scaled_w, scaled_h = original_w, original_h  # 不缩放，直接使用原始尺寸
+        scale = 1.0  # 缩放比例为1，不进行缩放
+        upscale = 1.0  # 放大比例为1，不进行放大
+        
+        # 不压缩图像，直接使用原始尺寸
+        # 这样大模型返回的坐标就是基于原始尺寸的，不需要进行坐标转换
         
         # 转换为JPEG格式，降低质量
         _, buffer = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
@@ -154,7 +440,35 @@ class AIAutoLabeler:
                         content = content[:-3]  # 移除结尾的```
                     content = content.strip()  # 去除首尾空白
                     
-                    return json.loads(content)
+                    # 解析JSON结果
+                    result_json = json.loads(content)
+                    
+                    # 确保返回的是包含detections键的字典
+                    if isinstance(result_json, dict):
+                        if "detections" not in result_json:
+                            result_json["detections"] = []
+                        elif not isinstance(result_json["detections"], list):
+                            result_json["detections"] = [result_json["detections"]]
+                    else:
+                        result_json = {"detections": []}
+                    
+                    # 将检测到的坐标从缩放后的尺寸转换回原始图片尺寸
+                    for detection in result_json["detections"]:
+                        if "bbox" in detection:
+                            bbox = detection["bbox"]
+                            if len(bbox) == 4:
+                                x1, y1, x2, y2 = map(float, bbox)
+                                
+                                # 如果图片被缩小了，则检测框需要等比放大
+                                # upscale = 1.0 / scale
+                                x1 = int(x1 * upscale)
+                                y1 = int(y1 * upscale)
+                                x2 = int(x2 * upscale)
+                                y2 = int(y2 * upscale)
+                                
+                                detection["bbox"] = [x1, y1, x2, y2]
+                    
+                    return result_json
                 except json.JSONDecodeError:
                     error_msg = f"无法解析模型返回的JSON: {content}"
                     logging.error(error_msg)
@@ -197,9 +511,12 @@ class AIAutoLabeler:
         # 渲染检测框和标签
         for detection in detections:
             # 解析检测结果
-            label = detection.get("label", "unknown")
-            confidence = detection.get("confidence", 0.0)
-            bbox = detection.get("bbox", [0, 0, 0, 0])
+            if isinstance(detection, dict):
+                label = detection.get("label", "unknown")
+                confidence = detection.get("confidence", 0.0)
+                bbox = detection.get("bbox", [0, 0, 0, 0])
+            else:
+                continue
             
             # 转换为整数坐标
             x1, y1, x2, y2 = map(int, bbox)

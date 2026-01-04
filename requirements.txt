@@ -10,4 +10,5 @@ flask_socketio==5.6.0
 python-socketio==5.16.0
 python-engineio==4.13.0
 simple-websocket==1.1.0
+openai==1.40.0
 

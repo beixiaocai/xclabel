@@ -22,7 +22,7 @@ app = Flask(__name__)
 CORS(app)
 
 # 应用版本号
-APP_VERSION = "v2.4"
+APP_VERSION = "v2.5"
 
 # 配置SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
@@ -278,43 +278,47 @@ class VideoAnnotationTask:
                         break
                         
                     # 渲染检测结果
-                    labeled_frame = frame.copy()
-                    for detection in detections:
+                labeled_frame = frame.copy()
+                
+                for detection in detections:
+                    if isinstance(detection, dict):
                         label = detection.get("label", "unknown")
                         confidence = detection.get("confidence", 0.0)
                         bbox = detection.get("bbox", [0, 0, 0, 0])
+                    else:
+                        continue
+                    
+                    x1, y1, x2, y2 = map(int, bbox)
+                    color = colors.get(label, colors["default"])
+                    
+                    # 绘制检测框
+                    cv2.rectangle(labeled_frame, (x1, y1), (x2, y2), color, 2)
+                    
+                    # 绘制标签
+                    label_text = f"{label}: {confidence:.2f}"
+                    
+                    # 尝试使用PIL渲染中文
+                    try:
+                        from PIL import Image, ImageDraw, ImageFont
+                        import numpy as np
                         
-                        x1, y1, x2, y2 = map(int, bbox)
-                        color = colors.get(label, colors["default"])
+                        img_pil = Image.fromarray(cv2.cvtColor(labeled_frame, cv2.COLOR_BGR2RGB))
+                        draw = ImageDraw.Draw(img_pil)
                         
-                        # 绘制检测框
-                        cv2.rectangle(labeled_frame, (x1, y1), (x2, y2), color, 2)
-                        
-                        # 绘制标签
-                        label_text = f"{label}: {confidence:.2f}"
-                        
-                        # 尝试使用PIL渲染中文
                         try:
-                            from PIL import Image, ImageDraw, ImageFont
-                            import numpy as np
-                            
-                            img_pil = Image.fromarray(cv2.cvtColor(labeled_frame, cv2.COLOR_BGR2RGB))
-                            draw = ImageDraw.Draw(img_pil)
-                            
-                            try:
-                                font = ImageFont.truetype("simhei.ttf", 16)
-                            except IOError:
-                                font = ImageFont.load_default()
-                            
-                            text_x = x1
-                            text_y = y1 - 20 if y1 > 20 else y1 + 20
-                            draw.text((text_x, text_y), label_text, font=font, fill=tuple(color[::-1]))
-                            
-                            labeled_frame = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
-                        except Exception:
-                            # 使用OpenCV默认渲染
-                            cv2.putText(labeled_frame, label_text, (x1, y1 - 10 if y1 > 10 else y1 + 20), 
-                                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                            font = ImageFont.truetype("simhei.ttf", 16)
+                        except IOError:
+                            font = ImageFont.load_default()
+                        
+                        text_x = x1
+                        text_y = y1 - 20 if y1 > 20 else y1 + 20
+                        draw.text((text_x, text_y), label_text, font=font, fill=tuple(color[::-1]))
+                        
+                        labeled_frame = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
+                    except Exception:
+                        # 使用OpenCV默认渲染
+                        cv2.putText(labeled_frame, label_text, (x1, y1 - 10 if y1 > 10 else y1 + 20), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
                     
                     # 保存渲染后的帧
                     labeled_frame_path = os.path.join(labeled_dir, frame_filename)
@@ -1170,8 +1174,8 @@ def upload_video():
         temp_video_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_' + (video_file.filename or 'video'))
         video_file.save(temp_video_path)
         
-        # 抽帧处理
-        extracted_frames = extract_frames(temp_video_path, frame_interval)
+        # 抽帧处理，传递原始文件名
+        extracted_frames = extract_frames(temp_video_path, frame_interval, video_file.filename)
         
         # 删除临时视频文件
         os.remove(temp_video_path)
@@ -1185,12 +1189,20 @@ def upload_video():
         return jsonify({'error': f'Failed to process video: {str(e)}'}), 500
 
 
-def extract_frames(video_path, frame_interval):
+def extract_frames(video_path, frame_interval, original_filename=None):
     """从视频中抽帧并保存为图片"""
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     saved_frame_count = 0
     extracted_frames = []
+    
+    # 生成文件名前缀
+    if original_filename:
+        # 使用原始视频文件名作为前缀
+        video_name = os.path.splitext(os.path.basename(original_filename))[0]
+    else:
+        # 使用视频路径中的文件名作为前缀
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
     
     while True:
         ret, frame = cap.read()
@@ -1200,7 +1212,6 @@ def extract_frames(video_path, frame_interval):
         # 每隔frame_interval帧保存一帧
         if frame_count % frame_interval == 0:
             # 生成文件名
-            video_name = os.path.splitext(os.path.basename(video_path))[0]
             frame_filename = f"{video_name}_frame_{saved_frame_count:06d}.jpg"
             frame_path = os.path.join(app.config['UPLOAD_FOLDER'], frame_filename)
             
@@ -1271,6 +1282,62 @@ def ai_annotate():
 
 
 # 自动标注相关API
+@app.route('/api/save-api-config', methods=['POST'])
+def save_api_config():
+    """保存API配置"""
+    try:
+        # 获取配置数据
+        config_data = request.json
+        if not config_data:
+            return jsonify({'success': False, 'error': 'No config data provided'}), 400
+        
+        # 确保config目录存在
+        os.makedirs('config', exist_ok=True)
+        
+        # 保存配置到文件
+        config_path = os.path.join('config', 'api_config.json')
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config_data, f, indent=2, ensure_ascii=False)
+        
+        return jsonify({'success': True, 'message': 'API配置保存成功'})
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/load-api-config', methods=['GET'])
+def load_api_config():
+    """加载API配置"""
+    try:
+        # 读取配置文件
+        config_path = os.path.join('config', 'api_config.json')
+        if not os.path.exists(config_path):
+            # 返回默认配置
+            default_config = {
+                "inferenceTool": "LMStudio",
+                "model": "qwen/qwen3-vl-8b",
+                "apiUrl": "http://192.168.1.105:1234/v1",
+                "apiKey": "",
+                "timeout": 30,
+                "prompt": "检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}"
+            }
+            return jsonify({'success': True, 'config': default_config})
+        
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
+        
+        return jsonify({'success': True, 'config': config_data})
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 @app.route('/api/auto-label/test', methods=['POST'])
 def api_test():
     """测试大模型API连接"""
@@ -1459,9 +1526,21 @@ def auto_label_image():
                 content = content.strip()
                 
                 try:
-                    detections = json.loads(content).get("detections", [])
-                    if isinstance(detections, dict):
-                        detections = [detections]
+                    # 直接解析JSON
+                    parsed_json = json.loads(content)
+                    
+                    # 检查解析结果类型
+                    if isinstance(parsed_json, dict):
+                        # 如果是字典，直接获取detections字段
+                        detections = parsed_json.get("detections", [])
+                        if isinstance(detections, dict):
+                            detections = [detections]
+                    elif isinstance(parsed_json, list):
+                        # 如果是数组，直接作为检测结果
+                        detections = parsed_json
+                    else:
+                        # 其他类型，默认为空列表
+                        detections = []
                 except json.JSONDecodeError as e:
                     error_msg = f"无法解析模型返回的JSON: {content}"
                     logging.error(error_msg)
@@ -1535,9 +1614,12 @@ def auto_label_image():
             
             # 渲染检测框和标签
             for detection in detections:
-                label = detection.get("label", "unknown")
-                confidence = detection.get("confidence", 0.0)
-                bbox = detection.get("bbox", [0, 0, 0, 0])
+                if isinstance(detection, dict):
+                    label = detection.get("label", "unknown")
+                    confidence = detection.get("confidence", 0.0)
+                    bbox = detection.get("bbox", [0, 0, 0, 0])
+                else:
+                    continue
                 
                 x1, y1, x2, y2 = map(int, bbox)
                 color = colors.get(label, colors["default"])
@@ -1780,9 +1862,21 @@ def auto_label_video():
                     content = content.strip()
                     
                     try:
-                        detections = json.loads(content).get("detections", [])
-                        if isinstance(detections, dict):
-                            detections = [detections]
+                        # 直接解析JSON
+                        parsed_json = json.loads(content)
+                        
+                        # 检查解析结果类型
+                        if isinstance(parsed_json, dict):
+                            # 如果是字典，直接获取detections字段
+                            detections = parsed_json.get("detections", [])
+                            if isinstance(detections, dict):
+                                detections = [detections]
+                        elif isinstance(parsed_json, list):
+                            # 如果是数组，直接作为检测结果
+                            detections = parsed_json
+                        else:
+                            # 其他类型，默认为空列表
+                            detections = []
                     except json.JSONDecodeError as e:
                         error_msg = f"无法解析模型返回的JSON: {content}"
                         logging.error(error_msg)

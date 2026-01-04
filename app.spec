@@ -34,7 +34,8 @@ hidden_imports = [
     'PIL.ImageDraw',
     'PIL.ImageFont',
     'requests',
-    'AiUtils'
+    'AiUtils',
+    'openai'
 ]
 
 # 获取engineio的async_drivers目录路径
@@ -43,11 +44,13 @@ import engineio
 engineio_path = os.path.dirname(engineio.__file__)
 async_drivers_path = os.path.join(engineio_path, 'async_drivers')
 
-# 添加engineio的async_drivers目录、templates目录和static目录到datas
+# 添加engineio的async_drivers目录、templates目录、static目录、CHANGELOG.md和README.md到datas
 datas = [
     (async_drivers_path, 'engineio/async_drivers'),
     ('templates', 'templates'),
-    ('static', 'static')
+    ('static', 'static'),
+    ('CHANGELOG.md', 'CHANGELOG.md'),
+    ('README.md', 'README.md')
 ]
 
 a = Analysis(
