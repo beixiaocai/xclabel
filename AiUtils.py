@@ -332,6 +332,72 @@ class AIAutoLabeler:
             logging.error(error_msg)
             raise Exception(error_msg)
     
+    def analyze_image_hyperlpr(self, image_path: str) -> Dict[str, Any]:
+        """调用HyperLPR API分析图像进行车牌识别
+        
+        Args:
+            image_path: 图像文件路径
+            
+        Returns:
+            车牌识别结果
+        """
+        import os
+        
+        # 构建请求数据
+        files = {
+            "file": (os.path.basename(image_path), open(image_path, "rb"), "image/jpeg")
+        }
+        
+        # 确保API地址以正确的端点结尾
+        api_endpoint = self.model_api_url
+        if not api_endpoint.endswith("/api/v1/rec"):
+            if api_endpoint.endswith("/"):
+                api_endpoint = f"{api_endpoint}api/v1/rec"
+            else:
+                api_endpoint = f"{api_endpoint}/api/v1/rec"
+        
+        # 发送请求
+        try:
+            response = self.session.post(api_endpoint, files=files, timeout=self.timeout)
+            
+            # 记录请求详情以便调试
+            logging.info(f"发送HyperLPR API请求到: {api_endpoint}")
+            
+            # 关闭文件
+            files["file"][1].close()
+            
+            # 检查响应状态码
+            if not response.ok:
+                # 记录响应详情
+                logging.error(f"HyperLPR API请求失败，状态码: {response.status_code}")
+                logging.error(f"响应内容: {response.text}")
+                raise Exception(f"HyperLPR API请求失败，状态码: {response.status_code}")
+            
+            result = response.json()
+            logging.info(f"HyperLPR API响应: {json.dumps(result, ensure_ascii=False)}")
+            
+            # 解析车牌识别结果
+            detections = []
+            if result.get("code") == 5000 and result.get("result"):
+                plate_list = result["result"].get("plate_list", [])
+                for plate in plate_list:
+                    detections.append({
+                        "label": plate.get("code", "未知车牌"),
+                        "confidence": plate.get("conf", 0.0),
+                        "bbox": plate.get("box", [0, 0, 0, 0]),
+                        "plate_type": plate.get("plate_type", "蓝牌")
+                    })
+            
+            return {"detections": detections}
+        except Exception as e:
+            # 确保文件被关闭
+            if "file" in locals() and hasattr(files["file"][1], "close"):
+                files["file"][1].close()
+            
+            error_msg = f"HyperLPR分析图像失败: {str(e)}"
+            logging.error(error_msg)
+            raise Exception(error_msg)
+    
     def analyze_image(self, image_path: str) -> Dict[str, Any]:
         """调用大模型API分析图像
         
@@ -349,6 +415,14 @@ class AIAutoLabeler:
                 return result
             else:
                 logging.error(f"阿里云大模型返回了非字典格式结果: {result}")
+                return {"detections": []}
+        elif self.inference_tool == "HyperLPR":
+            result = self.analyze_image_hyperlpr(image_path)
+            # 确保返回的是字典格式
+            if isinstance(result, dict):
+                return result
+            else:
+                logging.error(f"HyperLPR返回了非字典格式结果: {result}")
                 return {"detections": []}
         
         # 原有的分析逻辑保留
@@ -564,7 +638,9 @@ class AIAutoLabeler:
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         
         # 保存渲染后的图像
-        rendered_path = image_path.replace(".jpg", "_labeled.jpg")
+        import os
+        base_name, ext = os.path.splitext(image_path)
+        rendered_path = f"{base_name}_labeled{ext}"
         cv2.imwrite(rendered_path, image)
         return rendered_path
     

@@ -23,7 +23,7 @@ app = Flask(__name__)
 CORS(app)
 
 # 应用版本号
-APP_VERSION = "v2.5"
+APP_VERSION = "v2.6"
 
 # 配置SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
@@ -100,6 +100,10 @@ class VideoAnnotationTask:
             timeout = int(self.api_config.get('timeout', 30))
             prompt = self.api_config.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
             model = self.api_config.get('model', 'qwen/qwen3-vl-8b')
+            inference_tool = self.api_config.get('inferenceTool', 'LMStudio')
+            
+            # 初始化AIAutoLabeler
+            labeler = AIAutoLabeler(api_url, api_key, prompt, timeout, inference_tool, model)
             
             # 打开视频流
             cap = cv2.VideoCapture(self.video_path)
@@ -107,21 +111,6 @@ class VideoAnnotationTask:
                 self.error = f'Failed to open video: {self.video_path}'
                 self.status = TASK_STATUS['ERROR']
                 return
-            
-            # 定义颜色映射
-            colors = {
-                "person": (0, 255, 0),
-                "car": (255, 0, 0),
-                "bicycle": (0, 0, 255),
-                "dog": (255, 255, 0),
-                "cat": (255, 0, 255),
-                "人": (0, 255, 0),
-                "车": (255, 0, 0),
-                "自行车": (0, 0, 255),
-                "狗": (255, 255, 0),
-                "猫": (255, 0, 255),
-                "default": (0, 255, 255)
-            }
             
             # 处理视频帧
             while not self.stop_event.is_set():
@@ -172,73 +161,16 @@ class VideoAnnotationTask:
                     if self.stop_event.is_set():
                         break
                     
+                    # 检查停止信号
+                    if self.stop_event.is_set():
+                        break
+                        
                     # 调用API进行标注
-                    # 压缩图像
-                    max_size = 640
-                    h, w = frame.shape[:2]
-                    if max(h, w) > max_size:
-                        scale = max_size / max(h, w)
-                        new_w = int(w * scale)
-                        new_h = int(h * scale)
-                        resized_frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
-                    else:
-                        resized_frame = frame.copy()
-                    
-                    _, buffer = cv2.imencode('.jpg', resized_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
-                    image_base64 = base64.b64encode(buffer).decode("utf-8")
-                    
-                    # 检查停止信号
-                    if self.stop_event.is_set():
-                        break
-                        
-                    # 构建API请求
-                    headers = {
-                        "Content-Type": "application/json"
-                    }
-                    if api_key:
-                        headers["Authorization"] = f"Bearer {api_key}"
-                    
-                    # 确保API地址以正确的端点结尾
-                    api_endpoint = api_url
-                    if api_endpoint.endswith("/v1"):
-                        api_endpoint = f"{api_endpoint}/chat/completions"
-                    elif not api_endpoint.endswith("/chat/completions"):
-                        api_endpoint = f"{api_endpoint.rstrip('/')}/v1/chat/completions"
-                    
-                    payload = {
-                        "model": model,
-                        "messages": [
-                            {
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/jpeg;base64,{image_base64}"
-                                        }
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": prompt
-                                    }
-                                ]
-                            }
-                        ],
-                        "temperature": 0.0,
-                        "response_format": {
-                            "type": "text"
-                        }
-                    }
-                    
-                    # 检查停止信号
-                    if self.stop_event.is_set():
-                        break
-                        
-                    # 发送请求
                     try:
-                        response = requests.post(api_endpoint, headers=headers, json=payload, timeout=timeout)
-                        response.raise_for_status()
-                        result = response.json()
+                        result = labeler.analyze_image(raw_frame_path)
+                        detections = result.get("detections", [])
+                        if isinstance(detections, dict):
+                            detections = [detections]
                     except Exception as e:
                         # API请求失败，继续处理下一帧
                         logging.error(f"API request failed: {str(e)}")
@@ -250,90 +182,22 @@ class VideoAnnotationTask:
                     if self.stop_event.is_set():
                         break
                     
-                    # 解析结果
-                    if "choices" not in result or len(result["choices"]) == 0:
-                        # 发送进度更新，告知解析结果失败
-                        self.send_progress()
-                        continue
-                    
-                    content = result["choices"][0]["message"]["content"]
-                    if content.startswith('```json'):
-                        content = content[7:]
-                    if content.endswith('```'):
-                        content = content[:-3]
-                    content = content.strip()
-                    
-                    try:
-                        parsed_json = json.loads(content)
-                        # 检查解析结果类型
-                        if isinstance(parsed_json, dict):
-                            # 如果是字典，直接获取detections字段
-                            detections = parsed_json.get("detections", [])
-                            if isinstance(detections, dict):
-                                detections = [detections]
-                        elif isinstance(parsed_json, list):
-                            # 如果是数组，直接作为检测结果
-                            detections = parsed_json
-                        else:
-                            # 其他类型，默认为空列表
-                            detections = []
-                    except json.JSONDecodeError as e:
-                        # JSON解析失败，继续处理下一帧
-                        logging.error(f"Failed to parse JSON response: {str(e)}")
-                        # 发送进度更新，告知JSON解析失败
-                        self.send_progress()
-                        continue
-                    
                     # 检查停止信号
                     if self.stop_event.is_set():
                         break
                         
                     # 渲染检测结果
-                    labeled_frame = frame.copy()
-                    
-                    for detection in detections:
-                        if isinstance(detection, dict):
-                            label = detection.get("label", "unknown")
-                            confidence = detection.get("confidence", 0.0)
-                            bbox = detection.get("bbox", [0, 0, 0, 0])
-                        else:
-                            continue
-                        
-                        x1, y1, x2, y2 = map(int, bbox)
-                        color = colors.get(label, colors["default"])
-                        
-                        # 绘制检测框
-                        cv2.rectangle(labeled_frame, (x1, y1), (x2, y2), color, 2)
-                        
-                        # 绘制标签
-                        label_text = f"{label}: {confidence:.2f}"
-                        
-                        # 尝试使用PIL渲染中文
-                        try:
-                            from PIL import Image, ImageDraw, ImageFont
-                            import numpy as np
-                            
-                            img_pil = Image.fromarray(cv2.cvtColor(labeled_frame, cv2.COLOR_BGR2RGB))
-                            draw = ImageDraw.Draw(img_pil)
-                            
-                            try:
-                                font = ImageFont.truetype("simhei.ttf", 16)
-                            except IOError:
-                                font = ImageFont.load_default()
-                            
-                            text_x = x1
-                            text_y = y1 - 20 if y1 > 20 else y1 + 20
-                            draw.text((text_x, text_y), label_text, font=font, fill=tuple(color[::-1]))
-                            
-                            labeled_frame = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
-                        except Exception:
-                            # 使用OpenCV默认渲染
-                            cv2.putText(labeled_frame, label_text, (x1, y1 - 10 if y1 > 10 else y1 + 20), 
-                                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                    rendered_path = labeler.render_detections(raw_frame_path, detections)
                     
                     # 保存渲染后的帧
                     labeled_frame_path = os.path.join(labeled_dir, frame_filename)
-                    cv2.imwrite(labeled_frame_path, labeled_frame)
+                    # 如果目标文件已存在，先删除
+                    if os.path.exists(labeled_frame_path):
+                        os.remove(labeled_frame_path)
+                    os.rename(rendered_path, labeled_frame_path)
+                    
+                    # 读取渲染后的帧用于后续处理
+                    labeled_frame = cv2.imread(labeled_frame_path)
                     
                     self.processed_count += 1
                     self.total_detections += len(detections)
@@ -433,7 +297,7 @@ CLASSES_FILE = os.path.join(ANNOTATIONS_FOLDER, 'classes.json')
 
 # 初始化注释文件
 if not os.path.exists(ANNOTATIONS_FILE):
-    with open(ANNOTATIONS_FILE, 'w') as f:
+    with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump({}, f)
         
 # 初始化类别文件
@@ -452,9 +316,9 @@ if not os.path.exists(CLASSES_FILE):
 def index():
     return render_template('index.html', version=APP_VERSION)
 
-@app.route('/auto-label')
-def auto_label():
-    return render_template('auto_label.html', version=APP_VERSION)
+@app.route('/ai-config')
+def ai_config():
+    return render_template('ai_config.html', version=APP_VERSION)
 
 @app.route('/file-manager')
 def file_manager():
@@ -597,7 +461,7 @@ def get_images():
     annotations = {}
     if os.path.exists(ANNOTATIONS_FILE):
         try:
-            with open(ANNOTATIONS_FILE, 'r') as f:
+            with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
                 annotations = json.load(f)
         except json.JSONDecodeError:
             # 如果JSON文件无效或为空，使用空字典
@@ -668,13 +532,13 @@ def delete_images():
                 # 同时删除对应的标注信息
                 annotations = {}
                 if os.path.exists(ANNOTATIONS_FILE):
-                    with open(ANNOTATIONS_FILE, 'r') as f:
+                    with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
                         annotations = json.load(f)
                     
-                    if image_name in annotations:
-                        del annotations[image_name]
-                        with open(ANNOTATIONS_FILE, 'w') as f:
-                            json.dump(annotations, f, indent=2)
+                if image_name in annotations:
+                    del annotations[image_name]
+                    with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(annotations, f, indent=2)
             else:
                 errors.append(f"图片 '{image_name}' 不存在")
         except Exception as e:
@@ -731,13 +595,13 @@ def delete_files():
                 image_name = os.path.basename(file_path)
                 annotations = {}
                 if os.path.exists(ANNOTATIONS_FILE):
-                    with open(ANNOTATIONS_FILE, 'r') as f:
+                    with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
                         annotations = json.load(f)
                     
-                    if image_name in annotations:
-                        del annotations[image_name]
-                        with open(ANNOTATIONS_FILE, 'w') as f:
-                            json.dump(annotations, f, indent=2)
+                if image_name in annotations:
+                    del annotations[image_name]
+                    with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(annotations, f, indent=2)
         except Exception as e:
             errors.append(f"删除文件 '{file_path}' 失败: {str(e)}")
     
@@ -1182,6 +1046,168 @@ def upload_labelme_dataset():
         
     except Exception as e:
         return jsonify({'error': f'Failed to process LabelMe dataset: {str(e)}'}), 500
+        
+
+@app.route('/api/ai-label', methods=['POST'])
+def ai_label():
+    """AI标注功能"""
+    try:
+        import os
+        import json
+        import logging
+        import datetime
+        
+        # 获取请求数据
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        images = data.get('images', [])
+        selected_label = data.get('label')
+        api_config = data.get('apiConfig', {})
+        
+        if not images:
+            return jsonify({'success': False, 'error': 'No images provided'}), 400
+        
+        if not selected_label:
+            return jsonify({'success': False, 'error': 'No label provided'}), 400
+        
+        # 获取API配置
+        api_url = api_config.get('apiUrl', 'http://192.168.1.105:1234/v1')
+        api_key = api_config.get('apiKey', '')
+        timeout = int(api_config.get('timeout', 30))
+        prompt = api_config.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
+        model = api_config.get('model', 'qwen/qwen3-vl-8b')
+        inference_tool = api_config.get('inferenceTool', 'LMStudio')
+        
+        # 初始化AIAutoLabeler
+        labeler = AIAutoLabeler(api_url, api_key, prompt, timeout, inference_tool, model)
+        
+        # 读取现有的标注信息
+        annotations = {}
+        if os.path.exists(ANNOTATIONS_FILE):
+            with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
+                annotations = json.load(f)
+        
+        processed_count = 0
+        labeled_count = 0
+        total_images = len(images)
+        start_time = datetime.datetime.now()
+        
+        # 处理每张图片
+        for image_name in images:
+            # 构建图片路径
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
+            if not os.path.exists(image_path):
+                logging.error(f"Image not found: {image_path}")
+                continue
+            
+            processed_count += 1
+            
+            # 发送实时进度更新
+            current_time = datetime.datetime.now()
+            elapsed_seconds = int((current_time - start_time).total_seconds())
+            progress_data = {
+                'task_type': 'ai_label',
+                'status': 'running',
+                'processed': processed_count,
+                'total': total_images,
+                'elapsed_time': elapsed_seconds,
+                'labeled': labeled_count,
+                'message': f'正在处理第 {processed_count}/{total_images} 张图片'
+            }
+            socketio.emit('ai_label_progress', progress_data)
+            
+            # 调用API进行标注
+            try:
+                result = labeler.analyze_image(image_path)
+                detections = result.get("detections", [])
+                if isinstance(detections, dict):
+                    detections = [detections]
+                
+                # 如果检测到目标，更新标注状态
+                if detections:
+                    # 为每张图片创建标注
+                    image_annotations = []
+                    for detection in detections:
+                        # 确保detection是字典
+                        if isinstance(detection, dict):
+                            label = selected_label  # 使用选中的标签
+                            confidence = detection.get("confidence", 0.0)
+                            bbox = detection.get("bbox", [0, 0, 0, 0])
+                            
+                            # 转换为前端期望的标注格式
+                            # 确保bbox是一个包含四个数值的列表
+                            bbox = list(map(float, bbox)) if isinstance(bbox, (list, tuple)) else [0, 0, 0, 0]
+                            # 确保bbox有四个值
+                            if len(bbox) < 4:
+                                bbox = bbox + [0] * (4 - len(bbox))
+                            x1, y1, x2, y2 = bbox[:4]  # 只取前四个值
+                            
+                            annotation = {
+                                "id": str(uuid.uuid4()),  # 添加唯一ID
+                                "class": label,  # 前端使用class字段
+                                "type": "rectangle",  # 前端需要type字段
+                                "points": [
+                                    [x1, y1],
+                                    [x2, y1],
+                                    [x2, y2],
+                                    [x1, y2]
+                                ],  # 转换为points数组
+                                "confidence": confidence
+                            }
+                            image_annotations.append(annotation)
+                    
+                    # 更新标注信息
+                    annotations[image_name] = image_annotations
+                    labeled_count += 1
+            except Exception as e:
+                logging.error(f"Failed to process image {image_name}: {str(e)}")
+                continue
+        
+        # 保存更新后的标注信息
+        with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(annotations, f, indent=2, ensure_ascii=False)
+        
+        # 发送最终进度更新
+        current_time = datetime.datetime.now()
+        elapsed_seconds = int((current_time - start_time).total_seconds())
+        final_progress = {
+            'task_type': 'ai_label',
+            'status': 'completed',
+            'processed': processed_count,
+            'total': total_images,
+            'elapsed_time': elapsed_seconds,
+            'labeled': labeled_count,
+            'message': f'标注完成，成功处理 {processed_count} 张图片，其中 {labeled_count} 张标注成功'
+        }
+        socketio.emit('ai_label_progress', final_progress)
+        
+        return jsonify({
+            'success': True,
+            'processed': processed_count,
+            'labeled': labeled_count,
+            'message': f'成功处理 {processed_count} 张图片，其中 {labeled_count} 张标注成功'
+        })
+        
+    except Exception as e:
+        import traceback
+        logging.error(f"AI label failed: {str(e)}")
+        
+        # 发送错误进度更新
+        progress_data = {
+            'task_type': 'ai_label',
+            'status': 'error',
+            'error': str(e),
+            'message': f'标注失败: {str(e)}'
+        }
+        socketio.emit('ai_label_progress', progress_data)
+        
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 @app.route('/api/upload/video', methods=['POST'])
@@ -1259,7 +1285,7 @@ def get_annotations(image_name):
     annotations = {}
     if os.path.exists(ANNOTATIONS_FILE):
         try:
-            with open(ANNOTATIONS_FILE, 'r') as f:
+            with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
                 annotations = json.load(f)
         except json.JSONDecodeError:
             # 如果JSON文件无效或为空，使用空字典
@@ -1281,7 +1307,7 @@ def save_annotations(image_name):
     annotations = {}
     if os.path.exists(ANNOTATIONS_FILE):
         try:
-            with open(ANNOTATIONS_FILE, 'r') as f:
+            with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
                 annotations = json.load(f)
         except json.JSONDecodeError:
             # 如果JSON文件无效或为空，使用空字典
@@ -1293,8 +1319,8 @@ def save_annotations(image_name):
     
     annotations[image_name] = data
     
-    with open(ANNOTATIONS_FILE, 'w') as f:
-        json.dump(annotations, f, indent=2)
+    with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(annotations, f, indent=2, ensure_ascii=False)
     
     return jsonify({'message': 'Annotations saved successfully'})
 
@@ -1410,6 +1436,7 @@ def api_test():
             'traceback': traceback.format_exc()
         }), 500
 
+# 修复后的auto_label_image函数
 @app.route('/api/auto-label/image', methods=['POST'])
 def auto_label_image():
     """图片自动标注"""
@@ -1425,6 +1452,7 @@ def auto_label_image():
         api_key = request.form.get('api_key', '')
         timeout = int(request.form.get('timeout', 30))
         prompt = request.form.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
+        inference_tool = request.form.get('inferenceTool', 'LMStudio')
         
         if not files:
             return jsonify({'success': False, 'error': 'No image files provided'}), 400
@@ -1445,6 +1473,9 @@ def auto_label_image():
         # 获取模型配置
         model = request.form.get('model', 'qwen/qwen3-vl-8b')
         
+        # 初始化AIAutoLabeler
+        labeler = AIAutoLabeler(api_url, api_key, prompt, timeout, inference_tool, model)
+        
         # 处理每张图片
         for file in files:
             if file.filename == '':
@@ -1456,158 +1487,11 @@ def auto_label_image():
             file.save(raw_path)
             
             # 调用API进行标注
-            import base64
-            import requests
-            
-            # 读取和处理图像
-            img = cv2.imread(raw_path)
-            if img is None:
-                continue
-            
-            # 压缩图像
-            max_size = 640
-            h, w = img.shape[:2]
-            if max(h, w) > max_size:
-                scale = max_size / max(h, w)
-                new_w = int(w * scale)
-                new_h = int(h * scale)
-                img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
-            
-            _, buffer = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
-            image_base64 = base64.b64encode(buffer).decode("utf-8")
-            
-            # 构建API请求
-            headers = {
-                "Content-Type": "application/json"
-            }
-            if api_key:
-                headers["Authorization"] = f"Bearer {api_key}"
-            
-            # 确保API地址以正确的端点结尾
-            api_endpoint = api_url
-            if api_endpoint.endswith("/v1"):
-                api_endpoint = f"{api_endpoint}/chat/completions"
-            elif not api_endpoint.endswith("/chat/completions"):
-                api_endpoint = f"{api_endpoint.rstrip('/')}/v1/chat/completions"
-            
-            payload = {
-                "model": model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{image_base64}"
-                                }
-                            },
-                            {
-                                "type": "text",
-                                "text": prompt
-                            }
-                        ]
-                    }
-                ],
-                "temperature": 0.0,
-                "response_format": {
-                    "type": "text"
-                }
-            }
-            
-            # 发送请求
             try:
-                response = requests.post(api_endpoint, headers=headers, json=payload, timeout=timeout)
-                
-                # 检查响应状态码
-                if not response.ok:
-                    error_msg = f"API请求失败，状态码: {response.status_code}，响应: {response.text[:200]}..."
-                    logging.error(error_msg)
-                    return jsonify({
-                        'success': False,
-                        'error': error_msg,
-                        'processed': processed_count,
-                        'detections': total_detections,
-                        'output_dir': output_dir
-                    }), 500
-                
-                result = response.json()
-                
-                # 解析结果
-                if "choices" not in result or len(result["choices"]) == 0:
-                    error_msg = "API返回结果格式错误，缺少choices字段"
-                    logging.error(error_msg)
-                    return jsonify({
-                        'success': False,
-                        'error': error_msg,
-                        'processed': processed_count,
-                        'detections': total_detections,
-                        'output_dir': output_dir
-                    }), 500
-                
-                content = result["choices"][0]["message"]["content"]
-                if content.startswith('```json'):
-                    content = content[7:]
-                if content.endswith('```'):
-                    content = content[:-3]
-                content = content.strip()
-                
-                try:
-                    # 直接解析JSON
-                    parsed_json = json.loads(content)
-                    
-                    # 检查解析结果类型
-                    if isinstance(parsed_json, dict):
-                        # 如果是字典，直接获取detections字段
-                        detections = parsed_json.get("detections", [])
-                        if isinstance(detections, dict):
-                            detections = [detections]
-                    elif isinstance(parsed_json, list):
-                        # 如果是数组，直接作为检测结果
-                        detections = parsed_json
-                    else:
-                        # 其他类型，默认为空列表
-                        detections = []
-                except json.JSONDecodeError as e:
-                    error_msg = f"无法解析模型返回的JSON: {content}"
-                    logging.error(error_msg)
-                    return jsonify({
-                        'success': False,
-                        'error': error_msg,
-                        'processed': processed_count,
-                        'detections': total_detections,
-                        'output_dir': output_dir
-                    }), 500
-            except requests.exceptions.ConnectionError as e:
-                error_msg = f"无法连接到API服务器: {str(e)}. 请检查API地址是否正确，服务器是否正在运行。"
-                logging.error(error_msg)
-                return jsonify({
-                    'success': False,
-                    'error': error_msg,
-                    'processed': processed_count,
-                    'detections': total_detections,
-                    'output_dir': output_dir
-                }), 500
-            except requests.exceptions.Timeout as e:
-                error_msg = f"API请求超时: {str(e)}. 请检查网络连接或增加超时时间。"
-                logging.error(error_msg)
-                return jsonify({
-                    'success': False,
-                    'error': error_msg,
-                    'processed': processed_count,
-                    'detections': total_detections,
-                    'output_dir': output_dir
-                }), 500
-            except requests.exceptions.RequestException as e:
-                error_msg = f"API请求异常: {str(e)}"
-                logging.error(error_msg)
-                return jsonify({
-                    'success': False,
-                    'error': error_msg,
-                    'processed': processed_count,
-                    'detections': total_detections,
-                    'output_dir': output_dir
-                }), 500
+                result = labeler.analyze_image(raw_path)
+                detections = result.get("detections", [])
+                if isinstance(detections, dict):
+                    detections = [detections]
             except Exception as e:
                 error_msg = f"处理图片失败: {str(e)}"
                 logging.error(error_msg)
@@ -1620,69 +1504,14 @@ def auto_label_image():
                 }), 500
             
             # 渲染检测结果
-            img = cv2.imread(raw_path)
-            if img is None:
-                continue
+            rendered_path = labeler.render_detections(raw_path, detections)
             
-            # 定义颜色映射
-            colors = {
-                "person": (0, 255, 0),
-                "car": (255, 0, 0),
-                "bicycle": (0, 0, 255),
-                "dog": (255, 255, 0),
-                "cat": (255, 0, 255),
-                "人": (0, 255, 0),
-                "车": (255, 0, 0),
-                "自行车": (0, 0, 255),
-                "狗": (255, 255, 0),
-                "猫": (255, 0, 255),
-                "default": (0, 255, 255)
-            }
-            
-            # 渲染检测框和标签
-            for detection in detections:
-                if isinstance(detection, dict):
-                    label = detection.get("label", "unknown")
-                    confidence = detection.get("confidence", 0.0)
-                    bbox = detection.get("bbox", [0, 0, 0, 0])
-                else:
-                    continue
-                
-                x1, y1, x2, y2 = map(int, bbox)
-                color = colors.get(label, colors["default"])
-                
-                # 绘制检测框
-                cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-                
-                # 绘制标签
-                label_text = f"{label}: {confidence:.2f}"
-                
-                # 尝试使用PIL渲染中文
-                try:
-                    from PIL import Image, ImageDraw, ImageFont
-                    import numpy as np
-                    
-                    img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-                    draw = ImageDraw.Draw(img_pil)
-                    
-                    try:
-                        font = ImageFont.truetype("simhei.ttf", 16)
-                    except IOError:
-                        font = ImageFont.load_default()
-                    
-                    text_x = x1
-                    text_y = y1 - 20 if y1 > 20 else y1 + 20
-                    draw.text((text_x, text_y), label_text, font=font, fill=tuple(color[::-1]))
-                    
-                    img = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
-                except Exception:
-                    # 使用OpenCV默认渲染
-                    cv2.putText(img, label_text, (x1, y1 - 10 if y1 > 10 else y1 + 20), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-            
-            # 保存渲染后的图片
+            # 移动渲染后的图片到输出目录
             labeled_path = os.path.join(labeled_dir, filename)
-            cv2.imwrite(labeled_path, img)
+            # 如果目标文件已存在，先删除
+            if os.path.exists(labeled_path):
+                os.remove(labeled_path)
+            os.rename(rendered_path, labeled_path)
             
             # 生成原始图片的Base64数据
             import base64
@@ -1724,6 +1553,7 @@ def auto_label_image():
             'traceback': traceback.format_exc()
         }), 500
 
+# 修复后的auto_label_video函数
 @app.route('/api/auto-label/video', methods=['POST'])
 def auto_label_video():
     """视频自动标注"""
@@ -1756,6 +1586,10 @@ def auto_label_video():
         timeout = int(api_config.get('timeout', 30))
         prompt = api_config.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
         model = api_config.get('model', 'qwen/qwen3-vl-8b')
+        inference_tool = api_config.get('inferenceTool', 'LMStudio')
+        
+        # 初始化AIAutoLabeler
+        labeler = AIAutoLabeler(api_url, api_key, prompt, timeout, inference_tool, model)
         
         # 打开视频流
         cap = cv2.VideoCapture(video_path)
@@ -1765,21 +1599,6 @@ def auto_label_video():
         frame_count = 0
         processed_count = 0
         total_detections = 0
-        
-        # 定义颜色映射
-        colors = {
-            "person": (0, 255, 0),
-            "car": (255, 0, 0),
-            "bicycle": (0, 0, 255),
-            "dog": (255, 255, 0),
-            "cat": (255, 0, 255),
-            "人": (0, 255, 0),
-            "车": (255, 0, 0),
-            "自行车": (0, 0, 255),
-            "狗": (255, 255, 0),
-            "猫": (255, 0, 255),
-            "default": (0, 255, 255)
-        }
         
         # 处理视频帧
         while True:
@@ -1795,155 +1614,11 @@ def auto_label_video():
                 cv2.imwrite(raw_frame_path, frame)
                 
                 # 调用API进行标注
-                import base64
-                import requests
-                
-                # 压缩图像
-                max_size = 640
-                h, w = frame.shape[:2]
-                if max(h, w) > max_size:
-                    scale = max_size / max(h, w)
-                    new_w = int(w * scale)
-                    new_h = int(h * scale)
-                    resized_frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
-                else:
-                    resized_frame = frame.copy()
-                
-                _, buffer = cv2.imencode('.jpg', resized_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
-                image_base64 = base64.b64encode(buffer).decode("utf-8")
-                
-                # 构建API请求
-                headers = {
-                    "Content-Type": "application/json"
-                }
-                if api_key:
-                    headers["Authorization"] = f"Bearer {api_key}"
-                
-                # 确保API地址以正确的端点结尾
-                api_endpoint = api_url
-                if api_endpoint.endswith("/v1"):
-                    api_endpoint = f"{api_endpoint}/chat/completions"
-                elif not api_endpoint.endswith("/chat/completions"):
-                    api_endpoint = f"{api_endpoint.rstrip('/')}/v1/chat/completions"
-                
-                payload = {
-                    "model": model,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{image_base64}"
-                                    }
-                                },
-                                {
-                                    "type": "text",
-                                    "text": prompt
-                                }
-                            ]
-                        }
-                    ],
-                    "temperature": 0.0,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-                
-                # 发送请求
                 try:
-                    response = requests.post(api_endpoint, headers=headers, json=payload, timeout=timeout)
-                    
-                    # 检查响应状态码
-                    if not response.ok:
-                        error_msg = f"API请求失败，状态码: {response.status_code}，响应: {response.text[:200]}..."
-                        logging.error(error_msg)
-                        return jsonify({
-                            'success': False,
-                            'error': error_msg,
-                            'processed': processed_count,
-                            'detections': total_detections,
-                            'output_dir': output_dir
-                        }), 500
-                    
-                    result = response.json()
-                    
-                    # 解析结果
-                    if "choices" not in result or len(result["choices"]) == 0:
-                        error_msg = "API返回结果格式错误，缺少choices字段"
-                        logging.error(error_msg)
-                        return jsonify({
-                            'success': False,
-                            'error': error_msg,
-                            'processed': processed_count,
-                            'detections': total_detections,
-                            'output_dir': output_dir
-                        }), 500
-                    
-                    content = result["choices"][0]["message"]["content"]
-                    if content.startswith('```json'):
-                        content = content[7:]
-                    if content.endswith('```'):
-                        content = content[:-3]
-                    content = content.strip()
-                    
-                    try:
-                        # 直接解析JSON
-                        parsed_json = json.loads(content)
-                        
-                        # 检查解析结果类型
-                        if isinstance(parsed_json, dict):
-                            # 如果是字典，直接获取detections字段
-                            detections = parsed_json.get("detections", [])
-                            if isinstance(detections, dict):
-                                detections = [detections]
-                        elif isinstance(parsed_json, list):
-                            # 如果是数组，直接作为检测结果
-                            detections = parsed_json
-                        else:
-                            # 其他类型，默认为空列表
-                            detections = []
-                    except json.JSONDecodeError as e:
-                        error_msg = f"无法解析模型返回的JSON: {content}"
-                        logging.error(error_msg)
-                        return jsonify({
-                            'success': False,
-                            'error': error_msg,
-                            'processed': processed_count,
-                            'detections': total_detections,
-                            'output_dir': output_dir
-                        }), 500
-                except requests.exceptions.ConnectionError as e:
-                    error_msg = f"无法连接到API服务器: {str(e)}. 请检查API地址是否正确，服务器是否正在运行。"
-                    logging.error(error_msg)
-                    return jsonify({
-                        'success': False,
-                        'error': error_msg,
-                        'processed': processed_count,
-                        'detections': total_detections,
-                        'output_dir': output_dir
-                    }), 500
-                except requests.exceptions.Timeout as e:
-                    error_msg = f"API请求超时: {str(e)}. 请检查网络连接或增加超时时间。"
-                    logging.error(error_msg)
-                    return jsonify({
-                        'success': False,
-                        'error': error_msg,
-                        'processed': processed_count,
-                        'detections': total_detections,
-                        'output_dir': output_dir
-                    }), 500
-                except requests.exceptions.RequestException as e:
-                    error_msg = f"API请求异常: {str(e)}"
-                    logging.error(error_msg)
-                    return jsonify({
-                        'success': False,
-                        'error': error_msg,
-                        'processed': processed_count,
-                        'detections': total_detections,
-                        'output_dir': output_dir
-                    }), 500
+                    result = labeler.analyze_image(raw_frame_path)
+                    detections = result.get("detections", [])
+                    if isinstance(detections, dict):
+                        detections = [detections]
                 except Exception as e:
                     error_msg = f"处理视频帧失败: {str(e)}"
                     logging.error(error_msg)
@@ -1956,48 +1631,14 @@ def auto_label_video():
                     }), 500
                 
                 # 渲染检测结果
-                labeled_frame = frame.copy()
+                rendered_path = labeler.render_detections(raw_frame_path, detections)
                 
-                for detection in detections:
-                    label = detection.get("label", "unknown")
-                    confidence = detection.get("confidence", 0.0)
-                    bbox = detection.get("bbox", [0, 0, 0, 0])
-                    
-                    x1, y1, x2, y2 = map(int, bbox)
-                    color = colors.get(label, colors["default"])
-                    
-                    # 绘制检测框
-                    cv2.rectangle(labeled_frame, (x1, y1), (x2, y2), color, 2)
-                    
-                    # 绘制标签
-                    label_text = f"{label}: {confidence:.2f}"
-                    
-                    # 尝试使用PIL渲染中文
-                    try:
-                        from PIL import Image, ImageDraw, ImageFont
-                        import numpy as np
-                        
-                        img_pil = Image.fromarray(cv2.cvtColor(labeled_frame, cv2.COLOR_BGR2RGB))
-                        draw = ImageDraw.Draw(img_pil)
-                        
-                        try:
-                            font = ImageFont.truetype("simhei.ttf", 16)
-                        except IOError:
-                            font = ImageFont.load_default()
-                        
-                        text_x = x1
-                        text_y = y1 - 20 if y1 > 20 else y1 + 20
-                        draw.text((text_x, text_y), label_text, font=font, fill=tuple(color[::-1]))
-                        
-                        labeled_frame = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
-                    except Exception:
-                        # 使用OpenCV默认渲染
-                        cv2.putText(labeled_frame, label_text, (x1, y1 - 10 if y1 > 10 else y1 + 20), 
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-                
-                # 保存渲染后的帧
-                labeled_frame_path = os.path.join(labeled_dir, frame_filename)
-                cv2.imwrite(labeled_frame_path, labeled_frame)
+                # 移动渲染后的图片到输出目录
+                labeled_path = os.path.join(labeled_dir, frame_filename)
+                # 如果目标文件已存在，先删除
+                if os.path.exists(labeled_path):
+                    os.remove(labeled_path)
+                os.rename(rendered_path, labeled_path)
                 
                 processed_count += 1
                 total_detections += len(detections)
@@ -2021,8 +1662,6 @@ def auto_label_video():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
-
-
 
 @app.route('/api/check-yolo11-install')
 def check_yolo11_install():

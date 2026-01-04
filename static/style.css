@@ -343,6 +343,29 @@ body {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    position: relative;
+    transition: width 0.2s ease;
+}
+
+/* 调整大小手柄 */
+.resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 5px;
+    height: 100%;
+    cursor: ew-resize;
+    background-color: transparent;
+    z-index: 10;
+}
+
+.resize-handle:hover {
+    background-color: #4facfe;
+}
+
+.resize-handle:active {
+    background-color: #00f2fe;
+    cursor: ew-resize;
 }
 
 .sidebar h3 {
@@ -587,14 +610,15 @@ body {
 .image-index {
     margin: 0;
     padding: 0;
-    width: 14px;
+    min-width: 20px;
     flex-shrink: 0;
     font-size: 0.7em;
     font-weight: normal;
     color: #6c757d;
-    text-align: left;
-    margin-right: 1px;
-    padding-right: 1px;
+    text-align: right;
+    margin-right: 8px;
+    padding-right: 2px;
+    white-space: nowrap;
 }
 
 .image-name {
@@ -4312,31 +4336,352 @@ body {
 }
 
 /* 设置弹窗内部布局优化 */
-.settings-modal h2 {
+.settings-modal h2,
+.modal-header h2 {
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.4em;
 }
 
-.settings-modal h3 {
+.settings-modal h3,
+.api-config-section h3,
+.prompt-section h3,
+.label-selection-section h3 {
     margin: 0 0 8px 0;
     font-size: 1em;
     font-weight: 600;
 }
 
-.settings-modal .form-row {
+.settings-modal .form-row,
+.api-config-content .form-row {
     display: flex;
     gap: 15px;
     margin-bottom: 10px;
 }
 
-.settings-modal .form-row .form-group {
+.settings-modal .form-row .form-group,
+.api-config-content .form-row .form-group {
     flex: 1;
     margin-bottom: 0;
 }
 
-.settings-modal .form-group {
+.settings-modal .form-group,
+.api-config-content .form-group,
+.prompt-section,
+.label-selection-section {
     margin-bottom: 10px;
+}
+
+/* AI标注弹框样式 */
+#aiLabelModal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#aiLabelModal .modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+#aiLabelModal .modal-header {
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#aiLabelModal .modal-header h2 {
+    margin: 0;
+    font-size: 1.3em;
+    color: #333;
+    font-weight: 600;
+}
+
+#aiLabelModal .close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+#aiLabelModal .close:hover,
+#aiLabelModal .close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#aiLabelModal .modal-body {
+    padding: 15px 20px;
+}
+
+/* 限制模态框的最大高度，确保所有内容在可视区域内 */
+#aiLabelModal .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* API配置区域样式 */
+.api-config-section {
+    margin-bottom: 15px;
+}
+
+.api-config-content {
+    background-color: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.api-config-content .form-group {
+    margin-bottom: 8px;
+}
+
+.api-config-content label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #495057;
+    font-size: 14px;
+}
+
+.api-config-content input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+}
+
+.api-config-content input:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.api-config-content input[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* 提示词输入区域样式 */
+.prompt-section {
+    margin-bottom: 15px;
+}
+
+.prompt-section h3,
+.api-config-section h3,
+.label-selection-section h3 {
+    color: #2c3e50;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#aiPrompt {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 60px;
+    max-height: 100px;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#aiPrompt:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+/* 标签选择区域样式 */
+.label-selection-section {
+    margin-bottom: 15px;
+}
+
+.label-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    background-color: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    max-height: 100px;
+    overflow-y: auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 进度显示区域样式 */
+.progress-section {
+    margin-bottom: 15px;
+}
+
+.progress-content {
+    background-color: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.progress-info {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.progress-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.progress-item label {
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #007bff;
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 10px;
+}
+
+.progress-details {
+    font-size: 13px;
+    color: #6c757d;
+    min-height: 20px;
+}
+
+/* 输入框通用样式 */
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.form-control[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* 表单行样式 */
+.form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* 表单组样式 */
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #495057;
+    font-size: 14px;
+}
+
+.label-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.label-item:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.label-item.selected {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.label-item input[type="radio"] {
+    margin: 0;
+}
+
+/* 模态框底部样式 */
+.modal-footer {
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 8px 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 .settings-modal .form-group label {

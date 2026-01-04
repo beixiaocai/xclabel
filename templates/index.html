@@ -28,8 +28,11 @@
                 <button id="exportBtn" class="btn btn-success">
                     <i class="fas fa-download"></i> 导出数据集
                 </button>
-                <button id="autoLabelBtn" class="btn btn-warning">
-                    <i class="fas fa-robot"></i> 自动标注
+                <button id="aiLabelBtn" class="btn btn-primary">
+                    <i class="fas fa-robot"></i> AI标注
+                </button>
+                <button id="aiConfigBtn" class="btn btn-warning">
+                    <i class="fas fa-cog"></i> AI配置
                 </button>
                 <button id="settingsBtn" class="btn btn-info">
                     <i class="fas fa-cog"></i> 设置
@@ -42,6 +45,9 @@
         <div class="main-content">
             <!-- 左侧图片列表 -->
             <div class="image-panel">
+                <!-- 调整大小手柄 -->
+                <div class="resize-handle" id="resizeHandle"></div>
+                
                 <!--<div class="panel-header">
                     <h3><i class="fas fa-images"></i> 图片列表</h3>
                 </div>-->
@@ -483,7 +489,408 @@
 
     <!-- Toast 提示 -->
     <div id="toast" class="toast"></div>
+    
+    <!-- AI标注弹框 -->
+    <div id="aiLabelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-robot"></i> AI标注</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- API配置区域 -->
+                <div class="api-config-section">
+                    <h3>API配置</h3>
+                    <div class="api-config-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="apiTool">推理工具</label>
+                                <input type="text" id="apiTool" class="form-control" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="apiModel">模型</label>
+                                <input type="text" id="apiModel" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="apiUrl">API地址</label>
+                                <input type="text" id="apiUrl" class="form-control" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="apiTimeout">超时时间</label>
+                                <input type="text" id="apiTimeout" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 提示词输入区域 -->
+                <div class="prompt-section">
+                    <h3>提示词</h3>
+                    <textarea id="aiPrompt" class="form-control" rows="4" placeholder="请输入标注提示词..."></textarea>
+                </div>
+                
+                <!-- 标签选择区域 -->
+                <div class="label-selection-section">
+                    <h3>选择标签</h3>
+                    <div id="labelList" class="label-list">
+                        <!-- 标签将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+                
+                <!-- 进度显示区域 -->
+                <div id="progressSection" class="progress-section" style="display: none;">
+                    <h3>标注进度</h3>
+                    <div class="progress-content">
+                        <div class="progress-info">
+                            <div class="progress-item">
+                                <label>已执行：</label>
+                                <span id="progressExecuted">0</span> / <span id="progressTotal">0</span>
+                            </div>
+                            <div class="progress-item">
+                                <label>总耗时：</label>
+                                <span id="progressTime">0秒</span>
+                            </div>
+                            <div class="progress-item">
+                                <label>状态：</label>
+                                <span id="progressStatus">准备中</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div id="progressBar" class="progress-bar"></div>
+                        </div>
+                        <div class="progress-details">
+                            <div id="progressDetails"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelAiLabelBtn" class="btn btn-secondary">取消</button>
+                <button id="startAiLabelBtn" class="btn btn-primary">开始执行</button>
+            </div>
+        </div>
+    </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+    <!-- 左侧图片列表宽度调整功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const resizeHandle = document.getElementById('resizeHandle');
+            const imagePanel = document.querySelector('.image-panel');
+            let isResizing = false;
+            let startX = 0;
+            let startWidth = 0;
+            
+            // 从localStorage读取保存的宽度
+            const savedWidth = localStorage.getItem('imagePanelWidth');
+            if (savedWidth) {
+                const width = parseInt(savedWidth);
+                // 确保宽度在有效范围内
+                if (width >= 150 && width <= 500) {
+                    imagePanel.style.width = width + 'px';
+                }
+            }
+            
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = parseInt(window.getComputedStyle(imagePanel).width);
+                
+                // 添加全局事件监听
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+                
+                // 防止选择文本
+                e.preventDefault();
+            });
+            
+            function handleMouseMove(e) {
+                if (!isResizing) return;
+                
+                const deltaX = e.clientX - startX;
+                const newWidth = startWidth + deltaX;
+                
+                // 设置最小和最大宽度限制
+                if (newWidth >= 150 && newWidth <= 500) {
+                    imagePanel.style.width = newWidth + 'px';
+                }
+            }
+            
+            function handleMouseUp() {
+                isResizing = false;
+                
+                // 保存当前宽度到localStorage
+                const currentWidth = parseInt(window.getComputedStyle(imagePanel).width);
+                localStorage.setItem('imagePanelWidth', currentWidth);
+                
+                // 移除全局事件监听
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            }
+        });
+    </script>
+    
+    <!-- AI标注功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const aiLabelBtn = document.getElementById('aiLabelBtn');
+            const aiLabelModal = document.getElementById('aiLabelModal');
+            const closeBtn = aiLabelModal.querySelector('.close');
+            const cancelBtn = document.getElementById('cancelAiLabelBtn');
+            const startBtn = document.getElementById('startAiLabelBtn');
+            const labelList = document.getElementById('labelList');
+            
+            // API配置元素
+            const apiTool = document.getElementById('apiTool');
+            const apiModel = document.getElementById('apiModel');
+            const apiUrl = document.getElementById('apiUrl');
+            const apiTimeout = document.getElementById('apiTimeout');
+            
+            // 提示词输入框
+            const aiPrompt = document.getElementById('aiPrompt');
+            
+            // 选中的标签
+            let selectedLabel = null;
+            
+            // 打开AI标注弹框
+            aiLabelBtn.addEventListener('click', function() {
+                loadApiConfig();
+                loadLabels();
+                aiLabelModal.style.display = 'block';
+            });
+            
+            // 关闭AI标注弹框
+            function closeModal() {
+                aiLabelModal.style.display = 'none';
+            }
+            
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            
+            // 点击弹框外部关闭
+            window.addEventListener('click', function(e) {
+                if (e.target == aiLabelModal) {
+                    closeModal();
+                }
+            });
+            
+            // 加载API配置
+            function loadApiConfig() {
+                fetch('/api/load-api-config')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const config = data.config;
+                            apiTool.value = config.inferenceTool || '';
+                            apiModel.value = config.model || '';
+                            apiUrl.value = config.apiUrl || '';
+                            apiTimeout.value = config.timeout || '';
+                            aiPrompt.value = config.prompt || '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Failed to load API config:', error);
+                        showToast('加载API配置失败', 'error');
+                    });
+            }
+            
+            // 加载标签列表
+            function loadLabels() {
+                fetch('/api/classes')
+                    .then(response => response.json())
+                    .then(classes => {
+                        labelList.innerHTML = '';
+                        
+                        classes.forEach(cls => {
+                            const labelItem = document.createElement('div');
+                            labelItem.className = 'label-item';
+                            
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = 'label';
+                            radio.value = cls.name;
+                            radio.id = `label_${cls.name}`;
+                            
+                            const label = document.createElement('label');
+                            label.htmlFor = radio.id;
+                            label.textContent = cls.name;
+                            
+                            labelItem.appendChild(radio);
+                            labelItem.appendChild(label);
+                            
+                            // 添加选择事件
+                            labelItem.addEventListener('click', function() {
+                                // 移除其他选中状态
+                                document.querySelectorAll('.label-item').forEach(item => {
+                                    item.classList.remove('selected');
+                                });
+                                // 添加当前选中状态
+                                labelItem.classList.add('selected');
+                                selectedLabel = cls.name;
+                            });
+                            
+                            labelList.appendChild(labelItem);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Failed to load labels:', error);
+                        showToast('加载标签失败', 'error');
+                    });
+            }
+            
+            // 开始执行AI标注
+            startBtn.addEventListener('click', function() {
+                if (!selectedLabel) {
+                    alert('请选择一个标签');
+                    return;
+                }
+                
+                // 获取选中的图片（使用复选框选中的图片）
+                const selectedCheckboxes = document.querySelectorAll('.image-checkbox-input:checked');
+                let imageNames = [];
+                
+                if (selectedCheckboxes.length > 0) {
+                    // 如果有通过复选框选中的图片，使用这些图片
+                    imageNames = Array.from(selectedCheckboxes).map(checkbox => {
+                        const listItem = checkbox.closest('.image-item');
+                        return listItem.querySelector('.image-name').textContent;
+                    });
+                } else {
+                    // 否则检查是否有通过点击选中的图片（单个）
+                    const singleSelectedImage = document.querySelector('#imageList li.selected');
+                    if (singleSelectedImage) {
+                        imageNames = [singleSelectedImage.querySelector('.image-name').textContent];
+                    }
+                }
+                
+                if (imageNames.length === 0) {
+                    alert('请至少选中一个文件');
+                    return;
+                }
+                
+                // 获取API配置
+                const config = {
+                    inferenceTool: apiTool.value,
+                    model: apiModel.value,
+                    apiUrl: apiUrl.value,
+                    apiKey: '', // 不显示密钥
+                    timeout: parseInt(apiTimeout.value),
+                    prompt: aiPrompt.value
+                };
+                
+                // 显示进度区域
+                const progressSection = document.getElementById('progressSection');
+                progressSection.style.display = 'block';
+                
+                // 初始化进度显示
+                document.getElementById('progressExecuted').textContent = '0';
+                document.getElementById('progressTotal').textContent = imageNames.length;
+                document.getElementById('progressTime').textContent = '0秒';
+                document.getElementById('progressStatus').textContent = '准备中';
+                document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('progressDetails').textContent = '';
+                
+                // 发送AI标注请求
+                startBtn.disabled = true;
+                startBtn.textContent = '执行中...';
+                
+                // 记录开始时间
+                const startTime = Date.now();
+                
+                // 发送AI标注请求
+                fetch('/api/ai-label', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        images: imageNames,
+                        label: selectedLabel,
+                        apiConfig: config
+                    })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // 计算总耗时
+                        const endTime = Date.now();
+                        const totalTime = Math.round((endTime - startTime) / 1000);
+                        
+                        // 更新最终进度
+                        document.getElementById('progressExecuted').textContent = result.processed;
+                        document.getElementById('progressTime').textContent = `${totalTime}秒`;
+                        document.getElementById('progressStatus').textContent = '标注完成';
+                        document.getElementById('progressBar').style.width = '100%';
+                        document.getElementById('progressDetails').textContent = `成功处理 ${result.processed} 张图片，其中 ${result.labeled} 张标注成功`;
+                        
+                        showToast('AI标注完成', 'success');
+                        
+                        // 延迟关闭弹框，让用户看到最终结果
+                        setTimeout(() => {
+                            // 更新图片列表状态
+                            updateImageList();
+                            closeModal();
+                        }, 1000);
+                    } else {
+                        showToast(`AI标注失败: ${result.error}`, 'error');
+                        document.getElementById('progressStatus').textContent = '标注失败';
+                    }
+                })
+                .catch(error => {
+                    console.error('AI label failed:', error);
+                    showToast('AI标注失败', 'error');
+                    document.getElementById('progressStatus').textContent = '标注失败';
+                })
+                .finally(() => {
+                    startBtn.disabled = false;
+                    startBtn.textContent = '开始执行';
+                });
+            });
+            
+            // 更新图片列表
+            function updateImageList() {
+                // 触发图片列表更新
+                if (typeof loadImages === 'function') {
+                    loadImages();
+                }
+            }
+            
+            // SocketIO连接
+            const socket = io();
+            
+            // 监听AI标注进度更新
+            socket.on('ai_label_progress', function(data) {
+                // 更新进度显示
+                document.getElementById('progressExecuted').textContent = data.processed || 0;
+                document.getElementById('progressTotal').textContent = data.total || 0;
+                document.getElementById('progressTime').textContent = `${data.elapsed_time || 0}秒`;
+                document.getElementById('progressStatus').textContent = data.message || '准备中';
+                
+                // 更新进度条
+                if (data.total > 0 && data.processed > 0) {
+                    const progressPercentage = Math.round((data.processed / data.total) * 100);
+                    document.getElementById('progressBar').style.width = `${progressPercentage}%`;
+                }
+            });
+            
+            // 显示提示信息
+            function showToast(message, type = 'info') {
+                // 使用现有的toast功能
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = `toast ${type}`;
+                toast.style.display = 'block';
+                
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            }
+        });
+    </script>
 </body>
 </html>

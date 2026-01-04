@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
 let currentImage = null;
 let currentAnnotations = [];
 let classes = [];
@@ -49,9 +49,9 @@ function setupEventListeners() {
     document.getElementById('exportBtn').addEventListener('click', showExportModal);
     document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
     document.getElementById('clearAnnotationBtn').addEventListener('click', clearCurrentAnnotations);
-    // 自动标注按钮
-    document.getElementById('autoLabelBtn').addEventListener('click', function() {
-        window.location.href = '/auto-label';
+    // AI配置按钮
+    document.getElementById('aiConfigBtn').addEventListener('click', function() {
+        window.location.href = '/ai-config';
     });
     document.getElementById('saveAnnotationBtn').addEventListener('click', saveAnnotations);
     

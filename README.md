@@ -5,17 +5,19 @@
 * github开源地址：https://github.com/beixiaocai/xclabel
 
 ### 软件介绍
-- xclabel是一款功能强大的开源图像标注工具，支持样本导入、标注、自动标注、数据集导出和YOLO11模型管理
+- xclabel是一款功能强大的开源图像标注工具，支持样本导入、标注、AI自动标注、数据集导出和YOLO11模型管理
 - 采用Python+Flask开发，跨平台支持Windows/Linux/Mac，可通过源码运行或直接运行打包后的exe文件
 - 支持多种标注类型，包括矩形、多边形等
 - 支持导入图片文件夹、视频文件、LabelMe格式数据集
 - 支持RTSP流处理，可直接对网络摄像头流进行标注
-- 支持自动标注功能，可对图片和视频进行AI自动标注
+- 支持AI自动标注功能，可对图片和视频进行大模型自动标注
 - 支持导出YOLO格式数据集，可自定义训练/验证/测试比例
 - 集成YOLO11模型管理，支持安装、卸载和预训练模型下载
 - 内置文件管理系统，支持文件浏览、上传、下载、删除、新建文件夹等操作
 - 支持命令行参数配置，可通过--host和--port指定IP和端口
 - 简洁直观的用户界面，易于使用
+- 支持左侧侧边栏宽度保存功能，提升用户体验
+- 实现AI标注进度显示，包括已执行数量、总量、总耗时和进度条
 
 ### 软件截图
 <img width="720" alt="1" src="https://gitee.com/Vanishi/images/raw/master/xclabel/v2.1/1.png">
@@ -31,10 +33,11 @@
 2. **数据集管理**：
    - 支持图像、视频、LabelMe数据集导入
    - 视频抽帧时使用视频文件名作为前缀，便于管理
-3. **自动标注**：
-   - 支持多种推理工具（LMStudio、vLLM、ollama）
-   - 新增支持阿里云大模型自动标注
+3. **AI自动标注**：
+   - 支持多种推理工具（LMStudio、vLLM、ollama、阿里云大模型）
    - 支持图片和视频的AI自动标注
+   - 实现AI标注弹框，包含API配置、提示词输入和标签选择
+   - 支持显示标注进度，包括已执行数量、总量、总耗时和进度条
 4. **API配置管理**：支持保存和加载API配置参数
 5. **标注导出**：支持YOLO格式数据集导出，可自定义训练/验证/测试比例
 6. **标签管理**：支持添加、编辑、删除标签，自定义标签颜色
@@ -51,6 +54,11 @@
 9. **RTSP流处理**：支持直接对网络摄像头流进行标注
 10. **快捷键支持**：提高标注效率
 11. **实时保存**：标注数据实时保存，避免数据丢失
+12. **UI优化**：
+    - 在导航栏添加AI按钮
+    - 实现左侧侧边栏宽度保存功能，使用localStorage持久化
+    - 优化AI标注弹框样式，使元素更紧凑
+    - 改进左侧侧边栏图片列表，解决序号和文件名重叠问题
 
 ### 使用说明
 1. **安装依赖**：
@@ -96,24 +104,61 @@
 ```
 xclabel/
 ├── app.py                    # 主应用文件
-├── templates/
-│   └── index.html            # 主页面模板
-├── static/
-│   ├── style.css             # 样式文件
-│   ├── script.js             # 脚本文件
-│   ├── all.min.css           # Font Awesome图标库
-│   └── annotations/          # 标注数据存储目录
-├── uploads/                  # 上传的图片和视频存储目录
-├── plugins/                  # 插件目录（用于YOLO11安装）
+├── AiUtils.py                # AI自动标注工具类
+├── app.spec                  # PyInstaller打包配置文件
+├── CHANGELOG.md              # 版本更新记录
+├── LICENSE                   # 授权协议
+├── README.md                 # 项目说明文档
 ├── requirements.txt          # 依赖列表
-└── README.md                 # 项目说明文档
+├── .gitignore               # Git忽略文件配置
+├── static/
+│   ├── all.min.css           # Font Awesome图标库
+│   ├── script.js             # 脚本文件
+│   ├── style.css             # 样式文件
+│   ├── annotations/          # 标注数据存储目录
+│   │   ├── annotations.json  # 标注数据
+│   │   └── classes.json      # 标签数据
+│   ├── fonts/                # 字体文件目录
+│   │   ├── fa-brands-400.woff2
+│   │   ├── fa-regular-400.woff2
+│   │   ├── fa-solid-900.woff2
+│   │   └── fa-v4compatibility.woff2
+│   └── images/               # 图片资源目录
+│       ├── close.gif
+│       ├── load.gif
+│       ├── loading.gif
+│       ├── logo.ico
+│       └── logo.png
+├── templates/
+│   ├── ai_config.html        # AI配置页面
+│   ├── file_manager.html     # 文件管理页面
+│   └── index.html            # 主页面模板
+├── tests/                    # 测试文件目录
+│   ├── TEST.md              # 测试说明
+│   ├── auto_label.py        # 自动标注测试脚本
+│   ├── auto_label_video.py  # 视频自动标注测试脚本
+│   ├── test_api.py          # API测试脚本
+│   └── test_llpr.py         # LLPR测试脚本
+├── uploads/                  # 上传的图片和视频存储目录（运行时自动创建）
+└── plugins/                  # 插件目录（用于YOLO11安装，运行时自动创建）
 ```
 
 ### 标注流程
 1. **添加数据集**：点击右上角"添加数据集"按钮，选择要标注的图片、视频或LabelMe数据集
 2. **创建标签**：在右侧标签管理中添加需要的标签，设置颜色
-3. **开始标注**：选择左侧图片列表中的图片，使用左侧工具进行标注
+3. **开始标注**：
+   - **手动标注**：选择左侧图片列表中的图片，使用左侧工具进行标注
+   - **AI自动标注**：点击导航栏"AI"按钮，在弹框中配置API参数、输入提示词、选择标签，然后点击"开始执行"
 4. **导出数据集**：标注完成后，点击右上角"导出数据集"按钮，选择导出格式和参数
+
+### AI标注使用说明
+1. **打开AI标注弹框**：点击导航栏中的"AI"按钮
+2. **配置API参数**：检查并确认API配置信息，包括推理工具、模型、API地址等
+3. **输入提示词**：在提示词输入框中输入用于标注的提示词
+4. **选择标签**：从标签列表中选择一个用于标注的标签
+5. **开始AI标注**：确保左侧侧边栏至少选中一个图片文件，然后点击"开始执行"
+6. **查看标注进度**：在弹框中查看标注进度，包括已执行数量、总量、总耗时和进度条
+7. **完成标注**：标注完成后，系统会自动更新标注数据，可在左侧图片列表中查看已标注的图片
 
 ### YOLO11使用流程
 1. **安装YOLO11**：在设置弹框中点击"安装YOLO11"按钮
@@ -132,71 +177,6 @@ xclabel/
 - **数据库**：JSON文件存储
 - **图像处理**：OpenCV, PIL
 - **YOLO11集成**：Ultralytics YOLO11
-
-### 调用示例
-
-#### 示例1：调用阿里云大模型进行图像分析
-
-```python
-from AiUtils import AIAutoLabeler
-
-# 初始化AIAutoLabeler实例
-api_key = "your_aliyun_api_key"  # 替换为您的阿里云API密钥
-model = "qwen-vl-max"  # 替换为您要使用的阿里云模型名称
-
-# 创建自动标注器实例
-labeler = AIAutoLabeler(
-    model_api_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    api_key=api_key,
-    inference_tool="阿里云大模型",
-    model=model,
-    prompt="检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}"
-)
-
-# 分析图像
-image_path = "test.jpg"  # 替换为您的图像路径
-result = labeler.analyze_image(image_path)
-
-# 解析结果
-detections = result.get("detections", [])
-print(f"检测到 {len(detections)} 个目标：")
-for i, detection in enumerate(detections):
-    label = detection.get("label", "unknown")
-    confidence = detection.get("confidence", 0.0)
-    bbox = detection.get("bbox", [])
-    print(f"目标 {i+1}: {label} (置信度: {confidence:.2f})，位置: {bbox}")
-```
-
-#### 示例2：调用LMStudio进行图像分析
-
-```python
-from AiUtils import AIAutoLabeler
-
-# 初始化AIAutoLabeler实例
-lmstudio_url = "http://localhost:1234/v1"  # LMStudio的API地址
-model = "qwen/qwen3-vl-8b"  # LMStudio中运行的模型名称
-
-# 创建自动标注器实例
-labeler = AIAutoLabeler(
-    model_api_url=lmstudio_url,
-    inference_tool="LMStudio",
-    model=model,
-    prompt="检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}"
-)
-
-# 分析图像
-image_path = "test.jpg"  # 替换为您的图像路径
-result = labeler.analyze_image(image_path)
-
-# 解析结果
-detections = result.get("detections", [])
-print(f"检测到 {len(detections)} 个目标：")
-for i, detection in enumerate(detections):
-    label = detection.get("label", "unknown")
-    confidence = detection.get("confidence", 0.0)
-    bbox = detection.get("bbox", [])
-    print(f"目标 {i+1}: {label} (置信度: {confidence:.2f})，位置: {bbox}")
-```
 
 ### 授权协议
 - 本项目自有代码使用宽松的MIT协议，在保留版权信息的情况下可以自由应用于各自商用、非商业的项目。
