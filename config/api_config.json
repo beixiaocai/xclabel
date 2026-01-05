@@ -1,8 +1,0 @@
-{
-  "inferenceTool": "LMStudio",
-  "model": "qwen/qwen3-vl-8b",
-  "apiUrl": "http://127.0.0.1:1234/v1",
-  "apiKey": "",
-  "timeout": "120",
-  "prompt": "检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}"
-}

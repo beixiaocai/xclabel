@@ -23,7 +23,7 @@ app = Flask(__name__)
 CORS(app)
 
 # 应用版本号
-APP_VERSION = "v2.6"
+APP_VERSION = "v2.7"
 
 # 配置SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
@@ -95,7 +95,7 @@ class VideoAnnotationTask:
             os.makedirs(labeled_dir, exist_ok=True)
             
             # 获取API配置
-            api_url = self.api_config.get('apiUrl', 'http://192.168.1.105:1234/v1')
+            api_url = self.api_config.get('apiUrl', 'http://127.0.0.1:1234/v1')
             api_key = self.api_config.get('apiKey', '')
             timeout = int(self.api_config.get('timeout', 30))
             prompt = self.api_config.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
@@ -280,7 +280,7 @@ import os
 BASE_PATH = os.getcwd()
 UPLOAD_FOLDER = os.path.join(BASE_PATH, 'uploads')
 STATIC_FOLDER = os.path.join(BASE_PATH, 'static')
-ANNOTATIONS_FOLDER = os.path.join(STATIC_FOLDER, 'annotations')
+ANNOTATIONS_FOLDER = os.path.join(UPLOAD_FOLDER, 'annotations')
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['STATIC_FOLDER'] = STATIC_FOLDER
@@ -304,11 +304,9 @@ if not os.path.exists(ANNOTATIONS_FILE):
 if not os.path.exists(CLASSES_FILE):
     # 默认类别
     default_classes = [
-        {'name': 'person', 'color': '#3aa757'},
-        {'name': 'car', 'color': '#4c9ffd'},
-        {'name': 'animal', 'color': '#ff9d00'}
+        {'name': 'person', 'color': '#3aa757'}
     ]
-    with open(CLASSES_FILE, 'w') as f:
+    with open(CLASSES_FILE, 'w', encoding='utf-8') as f:
         json.dump(default_classes, f)
 
 
@@ -436,7 +434,7 @@ def get_classes():
     """获取所有类别"""
     classes = []
     if os.path.exists(CLASSES_FILE):
-        with open(CLASSES_FILE, 'r') as f:
+        with open(CLASSES_FILE, 'r', encoding='utf-8') as f:
             classes = json.load(f)
     return jsonify(classes)
 
@@ -446,7 +444,10 @@ def save_classes():
     """保存所有类别"""
     data = request.json
     
-    with open(CLASSES_FILE, 'w') as f:
+    # 确保ANNOTATIONS_FOLDER目录存在
+    os.makedirs(ANNOTATIONS_FOLDER, exist_ok=True)
+    
+    with open(CLASSES_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
     
     return jsonify({'message': 'Classes saved successfully'})
@@ -537,6 +538,8 @@ def delete_images():
                     
                 if image_name in annotations:
                     del annotations[image_name]
+                    # 确保ANNOTATIONS_FOLDER目录存在
+                    os.makedirs(ANNOTATIONS_FOLDER, exist_ok=True)
                     with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
                         json.dump(annotations, f, indent=2)
             else:
@@ -600,6 +603,8 @@ def delete_files():
                     
                 if image_name in annotations:
                     del annotations[image_name]
+                    # 确保ANNOTATIONS_FOLDER目录存在
+                    os.makedirs(ANNOTATIONS_FOLDER, exist_ok=True)
                     with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
                         json.dump(annotations, f, indent=2)
         except Exception as e:
@@ -923,12 +928,12 @@ def upload_labelme_dataset():
         # 读取现有的类别和标注信息
         classes = []
         if os.path.exists(CLASSES_FILE):
-            with open(CLASSES_FILE, 'r') as f:
+            with open(CLASSES_FILE, 'r', encoding='utf-8') as f:
                 classes = json.load(f)
         
         annotations = {}
         if os.path.exists(ANNOTATIONS_FILE):
-            with open(ANNOTATIONS_FILE, 'r') as f:
+            with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
                 annotations = json.load(f)
         
         # 获取已有类别名称集合，便于快速查找
@@ -1032,10 +1037,12 @@ def upload_labelme_dataset():
                 processed_annotations += 1
         
         # 保存更新后的类别和标注信息
-        with open(CLASSES_FILE, 'w') as f:
+        # 确保ANNOTATIONS_FOLDER目录存在
+        os.makedirs(ANNOTATIONS_FOLDER, exist_ok=True)
+        with open(CLASSES_FILE, 'w', encoding='utf-8') as f:
             json.dump(classes, f, indent=2)
         
-        with open(ANNOTATIONS_FILE, 'w') as f:
+        with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
             json.dump(annotations, f, indent=2)
         
         return jsonify({
@@ -1073,7 +1080,7 @@ def ai_label():
             return jsonify({'success': False, 'error': 'No label provided'}), 400
         
         # 获取API配置
-        api_url = api_config.get('apiUrl', 'http://192.168.1.105:1234/v1')
+        api_url = api_config.get('apiUrl', 'http://127.0.0.1:1234/v1')
         api_key = api_config.get('apiKey', '')
         timeout = int(api_config.get('timeout', 30))
         prompt = api_config.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
@@ -1166,6 +1173,8 @@ def ai_label():
                 continue
         
         # 保存更新后的标注信息
+        # 确保ANNOTATIONS_FOLDER目录存在
+        os.makedirs(ANNOTATIONS_FOLDER, exist_ok=True)
         with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
             json.dump(annotations, f, indent=2, ensure_ascii=False)
         
@@ -1319,6 +1328,8 @@ def save_annotations(image_name):
     
     annotations[image_name] = data
     
+    # 确保ANNOTATIONS_FOLDER目录存在
+    os.makedirs(ANNOTATIONS_FOLDER, exist_ok=True)
     with open(ANNOTATIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump(annotations, f, indent=2, ensure_ascii=False)
     
@@ -1344,11 +1355,11 @@ def save_api_config():
         if not config_data:
             return jsonify({'success': False, 'error': 'No config data provided'}), 400
         
-        # 确保config目录存在
-        os.makedirs('config', exist_ok=True)
+        # 确保uploads/config目录存在
+        os.makedirs(os.path.join(UPLOAD_FOLDER, 'config'), exist_ok=True)
         
         # 保存配置到文件
-        config_path = os.path.join('config', 'api_config.json')
+        config_path = os.path.join(UPLOAD_FOLDER, 'config', 'ai_config.json')
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config_data, f, indent=2, ensure_ascii=False)
         
@@ -1366,13 +1377,13 @@ def load_api_config():
     """加载API配置"""
     try:
         # 读取配置文件
-        config_path = os.path.join('config', 'api_config.json')
+        config_path = os.path.join(UPLOAD_FOLDER, 'config', 'ai_config.json')
         if not os.path.exists(config_path):
             # 返回默认配置
             default_config = {
                 "inferenceTool": "LMStudio",
                 "model": "qwen/qwen3-vl-8b",
-                "apiUrl": "http://192.168.1.105:1234/v1",
+                "apiUrl": "http://127.0.0.1:1234/v1",
                 "apiKey": "",
                 "timeout": 30,
                 "prompt": "检测图中物体，返回JSON：{\"detections\":[{\"label\":\"类别\",\"confidence\":0.9,\"bbox\":[x1,y1,x2,y2]}]}"
@@ -1400,7 +1411,7 @@ def api_test():
             return jsonify({'success': False, 'error': 'No image file provided'}), 400
         
         image_file = request.files['image']
-        api_url = request.form.get('api_url', 'http://192.168.1.105:1234/v1')
+        api_url = request.form.get('api_url', 'http://127.0.0.1:1234/v1')
         api_key = request.form.get('api_key', '')
         timeout = int(request.form.get('timeout', 30))
         prompt = request.form.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
@@ -1448,7 +1459,7 @@ def auto_label_image():
         # 获取表单数据
         files = request.files.getlist('images')
         output_dir = request.form.get('output_dir', 'output')
-        api_url = request.form.get('api_url', 'http://192.168.1.105:1234/v1')
+        api_url = request.form.get('api_url', 'http://127.0.0.1:1234/v1')
         api_key = request.form.get('api_key', '')
         timeout = int(request.form.get('timeout', 30))
         prompt = request.form.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
@@ -1581,7 +1592,7 @@ def auto_label_video():
         os.makedirs(labeled_dir, exist_ok=True)
         
         # 获取API配置
-        api_url = api_config.get('apiUrl', 'http://192.168.1.105:1234/v1')
+        api_url = api_config.get('apiUrl', 'http://127.0.0.1:1234/v1')
         api_key = api_config.get('apiKey', '')
         timeout = int(api_config.get('timeout', 30))
         prompt = api_config.get('prompt', '检测图中物体，返回JSON：{"detections":[{"label":"类别","confidence":0.9,"bbox":[x1,y1,x2,y2]}]}')
@@ -2074,7 +2085,7 @@ def export_dataset():
         # 获取全局类别列表
         classes = []
         if os.path.exists(CLASSES_FILE):
-            with open(CLASSES_FILE, 'r') as f:
+            with open(CLASSES_FILE, 'r', encoding='utf-8') as f:
                 classes = json.load(f)
         
         # 创建临时目录用于生成数据集
@@ -2103,7 +2114,7 @@ def export_dataset():
         # 根据样本选择参数过滤图片
         annotations = {}
         if os.path.exists(ANNOTATIONS_FILE):
-            with open(ANNOTATIONS_FILE, 'r') as f:
+            with open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as f:
                 annotations = json.load(f)
         
         # 根据用户选择过滤图片
