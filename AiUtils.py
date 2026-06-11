@@ -17,6 +17,49 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+
+def normalize_bbox_to_pixels(bbox, img_width, img_height):
+    """将模型返回的 bbox 转为原图像素坐标。
+
+    支持：
+    - 0~1 归一化坐标
+    - Qwen-VL 等模型的 0~1000 相对坐标
+    - 已是像素坐标的情况（如 LMStudio 按提示词返回像素）
+    """
+    if not bbox or len(bbox) < 4:
+        return 0, 0, 0, 0
+
+    x1, y1, x2, y2 = (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3]))
+    max_val = max(x1, y1, x2, y2)
+
+    if max_val <= 1.0:
+        x1 *= img_width
+        y1 *= img_height
+        x2 *= img_width
+        y2 *= img_height
+    elif max_val <= 1000 and (
+        img_width > 1000 or img_height > 1000 or
+        x1 > img_width or y1 > img_height or
+        x2 > img_width or y2 > img_height
+    ):
+        x1 = x1 / 1000.0 * img_width
+        y1 = y1 / 1000.0 * img_height
+        x2 = x2 / 1000.0 * img_width
+        y2 = y2 / 1000.0 * img_height
+
+    x1 = max(0, min(x1, img_width))
+    y1 = max(0, min(y1, img_height))
+    x2 = max(0, min(x2, img_width))
+    y2 = max(0, min(y2, img_height))
+
+    if x1 > x2:
+        x1, x2 = x2, x1
+    if y1 > y2:
+        y1, y2 = y2, y1
+
+    return int(round(x1)), int(round(y1)), int(round(x2)), int(round(y2))
+
+
 class AiUtils:
     """AI自动标注工具类，封装了与大模型API交互和视频处理的核心功能"""
     
@@ -193,6 +236,11 @@ class AiUtils:
                 # 其他类型，创建空结果
                 logging.warning(f"未知的JSON类型: {type(result_json)}")
                 result_json = {"detections": []}
+
+            img_height, img_width = img.shape[:2]
+            for det in result_json.get("detections", []):
+                if isinstance(det, dict) and det.get("bbox") is not None:
+                    det["bbox"] = list(normalize_bbox_to_pixels(det["bbox"], img_width, img_height))
             
             return result_json
         except json.JSONDecodeError as e:
@@ -219,6 +267,8 @@ class AiUtils:
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError(f"无法读取图像: {image_path}")
+
+        img_height, img_width = image.shape[:2]
         
         # 渲染检测框和标签
         for detection in detections:
@@ -230,8 +280,7 @@ class AiUtils:
             else:
                 continue
             
-            # 转换为整数坐标
-            x1, y1, x2, y2 = map(int, bbox)
+            x1, y1, x2, y2 = normalize_bbox_to_pixels(bbox, img_width, img_height)
             
             # 获取颜色
             color = self.colors.get(label, self.colors["default"])
